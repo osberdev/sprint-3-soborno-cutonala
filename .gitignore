@@ -1,0 +1,13 @@
+# Entornos, archivos privados y temporales
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+secrets.*
+credentials*.json
+*.key
+.vscode/
+.idea/
+~$*

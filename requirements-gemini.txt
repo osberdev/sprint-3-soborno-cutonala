@@ -1,0 +1,2 @@
+# Dependencia opcional para Gemini. El modo local usa la biblioteca estándar.
+google-genai

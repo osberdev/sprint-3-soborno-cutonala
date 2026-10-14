@@ -1,0 +1,97 @@
+{
+  "corte": "2026-10-08",
+  "fuentes": {
+    "S01": {
+      "titulo": "Universidad de Guadalajara. Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria. Versión oficial enlazada de junio de 2022. Especialmente arts. 21, 23–24, 30–60 y 64–66.",
+      "url": "https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf"
+    },
+    "S02": {
+      "titulo": "Universidad de Guadalajara. Reglamento de Responsabilidades Vinculadas con el Ejercicio de los Recursos de la Universidad de Guadalajara. Versión de marzo de 2022. Ámbito y competencias, arts. 1–3.",
+      "url": "https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVRP%20%28Marzo%202022%29.pdf"
+    },
+    "S03": {
+      "titulo": "Contraloría General de la Universidad de Guadalajara. Denuncias. Sin fecha. Canal de recursos universitarios y remisión de otras faltas a Primer Contacto.",
+      "url": "https://contraloriageneral.udg.mx/denuncias"
+    },
+    "S04": {
+      "titulo": "Universidad de Guadalajara. Reglamento General de Evaluación y Promoción de Alumnos. Versión oficial de octubre de 2017. Revisión de evaluación, arts. 49–52.",
+      "url": "https://secgral.udg.mx/sites/default/files/Normatividad_general/rgepa-oct-2017.pdf"
+    },
+    "S05": {
+      "titulo": "Centro Universitario de Tonalá. Unidad de Primer Contacto. Sin fecha. Presentación, funciones y atención presencial.",
+      "url": "https://cutonala.udg.mx/primercontacto"
+    },
+    "S06": {
+      "titulo": "Centro Universitario de Tonalá. Directorio de Secretaría Académica. Sin fecha. Secretaría Académica y persona encargada de Primer Contacto.",
+      "url": "https://cutonala.udg.mx/acerca/directorio/secretaria-academica"
+    },
+    "S07": {
+      "titulo": "Centro Universitario de Tonalá. Directorios institucionales. Sin fecha. Se contrastaron los datos del enlace de la Defensoría y teléfonos; se conservaron las discrepancias.",
+      "url": "https://cutonala.udg.mx/directorio-cut"
+    },
+    "S08": {
+      "titulo": "Unidad para la Igualdad de la UDG. Directorio de primeros contactos. Sin fecha. Sección CUTonalá: personas, horarios, ubicación y teléfono publicado.",
+      "url": "https://igualdad.udg.mx/primeroscontactos"
+    },
+    "S09": {
+      "titulo": "Defensoría de los Derechos Universitarios de la UDG. Presentar una queja. Sin fecha. Alcance del servicio, recomendaciones y contacto central.",
+      "url": "https://ddu.udg.mx/presentar-una-queja"
+    },
+    "S10": {
+      "titulo": "Centro Universitario de Tonalá. ¿Qué es la Unidad de Orientación Educativa? Sin fecha. Orientación psicológica, solicitud e intervención presencial en crisis.",
+      "url": "https://cutonala.udg.mx/serviciosalacomunidadcut/que-es-la-unidad-de-orientacion-educativa"
+    },
+    "S11": {
+      "titulo": "Centro Universitario de Tonalá. Directorios de coordinaciones de carrera y de la División de Ingenierías e Innovación Tecnológica. Sin fecha. Contactos de ICC, división y departamento.",
+      "url": "https://cutonala.udg.mx/acerca/directorio/coordinadores-de-carrera"
+    },
+    "S12": {
+      "titulo": "Cámara de Diputados del H. Congreso de la Unión. Ley General de Responsabilidades Administrativas. Texto consultado con última reforma publicada el 15 de diciembre de 2025. Arts. 9–12, 52 y 66.",
+      "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf"
+    },
+    "S13": {
+      "titulo": "Congreso del Estado de Jalisco. Código Penal para el Estado Libre y Soberano de Jalisco. Archivo enlazado en el catálogo oficial con terminación 240926; el catálogo registra modificación del 8 de septiembre de 2026. Arts. 144 y 147, páginas 40 y 44 del PDF consultado. El nombre del archivo no se toma como fecha de entrada en vigor.",
+      "url": "https://congresoweb.congresojal.gob.mx/BibliotecaVirtual/legislacion/C%C3%B3digos/Documentos_PDF-C%C3%B3digos/C%C3%B3digo%20Penal%20para%20el%20Estado%20Libre%20y%20Soberano%20de%20Jalisco%20-240926.pdf"
+    },
+    "S14": {
+      "titulo": "Congreso del Estado de Jalisco. Ley de Responsabilidades Políticas y Administrativas del Estado de Jalisco. Archivo oficial con terminación 170323. Arts. 1, 2 y 4.",
+      "url": "https://congresoweb.congresojal.gob.mx/BibliotecaVirtual/legislacion/Leyes/Documentos_PDF-Leyes/Ley%20de%20Responsabilidades%20Pol%C3%ADticas%20y%20Administrativas%20del%20Estado%20de%20Jalisco-170323.pdf"
+    },
+    "S15": {
+      "titulo": "Congreso del Estado de Jalisco. Constitución Política del Estado de Jalisco. Archivo oficial con terminación 230926, consultado a través del catálogo legislativo. Arts. 90–92, página 57 del PDF.",
+      "url": "https://congresoweb.congresojal.gob.mx/BibliotecaVirtual/legislacion/Constituci%C3%B3n/Documentos_PDF-Constituci%C3%B3n/Constituci%C3%B3n%20Pol%C3%ADtica%20del%20Estado%20de%20Jalisco-230926.pdf"
+    },
+    "S16": {
+      "titulo": "Cámara de Diputados del H. Congreso de la Unión. Código Nacional de Procedimientos Penales. Texto consultado con última reforma publicada el 28 de noviembre de 2025. Arts. 109–110, 137 y 221–224.",
+      "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/CNPP.pdf"
+    },
+    "S17": {
+      "titulo": "Fiscalía Especializada en Combate a la Corrupción del Estado de Jalisco. Denuncia y portal institucional. Sin fecha editorial. Se inspeccionaron formulario, opciones de anonimato, seguimiento, límite de adjuntos y datos del pie de página. No se realizó envío.",
+      "url": "https://fiscaliaanticorrupcion.jalisco.gob.mx/denuncia"
+    },
+    "S18": {
+      "titulo": "Gobierno de Jalisco. Servicios Jurídicos Asistenciales e Identidad y Justicia, Procuraduría Social. Fichas de programas con distintas fechas de actualización. Describen asesoría gratuita; la disponibilidad y patrocinio específicos deben confirmarse.",
+      "url": "https://info.jalisco.gob.mx/gobierno/programas-apoyo/modalidad/21977"
+    },
+    "S19": {
+      "titulo": "Universidad de Guadalajara, Consejo Social. Ley Orgánica de la Universidad de Guadalajara, extracto institucional. Arts. 1–2 sobre naturaleza y régimen jurídico.",
+      "url": "https://cs.udg.mx/normatividad/ley-organica"
+    },
+    "S20": {
+      "titulo": "Centro Universitario de Tonalá. Informe de Actividades CUTonalá 2024. Apartado 2.3.2.1.3 y tabla 106, pp. 287–288. Datos de procesos de responsabilidades publicados por la institución.",
+      "url": "https://cutonala.udg.mx/sites/default/files/adjuntos/informe_cutonala_2024vf_compressed_0.pdf"
+    },
+    "S21": {
+      "titulo": "Centro Universitario de Tonalá. Informe Técnico de Actividades 2025. Apartado 4.1.2.4, Primer Contacto, pp. 258–259 y tablas 137–140. Se detectaron diferencias entre totales narrativos y tablas; no se calcularon tasas.",
+      "url": "https://cutonala.udg.mx/sites/default/files/adjuntos/Informe%20Te%CC%81cinco%20de%20Actividades%202025_CUTonala%CC%81%20%282%29.pdf"
+    },
+    "S22": {
+      "titulo": "Fiscalía Especializada en Combate a la Corrupción del Estado de Jalisco. Logra FECC vinculación a proceso de exservidor público del IJA por presuntamente cobrar un trámite gratuito. 15 de septiembre de 2026. Comunicado sobre probable cohecho; no sentencia firme.",
+      "url": "https://fiscaliaanticorrupcion.jalisco.gob.mx/prensa/noticias/logra-fecc-vinculacion-a-proceso-de-exservidor-pu-708"
+    },
+    "S23": {
+      "titulo": "Fiscalía Especializada en Combate a la Corrupción del Estado de Jalisco. Vinculan a proceso a 2 personas por presuntas irregularidades en la nómina del CECyTEJ. 17 de septiembre de 2026. Comunicado sobre peculado y abuso de autoridad; institución distinta de UDG.",
+      "url": "https://fiscaliaanticorrupcion.jalisco.gob.mx/prensa/noticias/vinculan-a-proceso-a-2-personas-por-presuntas-irr-709"
+    }
+  }
+}

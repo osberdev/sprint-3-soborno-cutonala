@@ -1,0 +1,19 @@
+EVIDENCIA EJECUTADA EL 13 DE OCTUBRE DE 2026
+Entorno: Windows; Python 3.12.14
+Comando reproducible: python pruebas_chatbot.py
+Código de salida: 0
+Modo local. No se realizó una llamada real a Gemini.
+
+
+test_amenaza_fisica_si_activa_orientacion_inmediata (__main__.PruebasSprint3.test_amenaza_fisica_si_activa_orientacion_inmediata) ... ok
+test_base_solo_incluye_apartados_pertinentes_de_la_investigacion (__main__.PruebasSprint3.test_base_solo_incluye_apartados_pertinentes_de_la_investigacion) ... ok
+test_comentario_sobre_persona_no_se_convierte_en_hecho (__main__.PruebasSprint3.test_comentario_sobre_persona_no_se_convierte_en_hecho) ... ok
+test_conexion_gemini_se_integra_sin_enviar_informe_completo (__main__.PruebasSprint3.test_conexion_gemini_se_integra_sin_enviar_informe_completo) ... ok
+test_pregunta_de_ubicacion_recupera_el_directorio (__main__.PruebasSprint3.test_pregunta_de_ubicacion_recupera_el_directorio) ... ok
+test_relato_directo_y_represalia_academica_conservan_estado (__main__.PruebasSprint3.test_relato_directo_y_represalia_academica_conservan_estado) ... ok
+test_todos_los_enlaces_tienen_fuente_identificada (__main__.PruebasSprint3.test_todos_los_enlaces_tienen_fuente_identificada) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.106s
+
+OK
