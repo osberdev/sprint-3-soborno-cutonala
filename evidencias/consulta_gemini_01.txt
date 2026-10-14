@@ -1,0 +1,19 @@
+
+ESTUDIANTE: Un docente me pidió dinero a cambio de aprobar la materia. ¿Qué puedo hacer?
+Consultando Gemini (espera limitada; hay respuesta local si falla)...
+
+RESPUESTA: Ante la solicitud de dinero a cambio de aprobar, puedes acudir a vías personales, universitarias y legales, las cuales pueden coexistir sin que la universidad sea un requisito previo para pedir una valoración legal. El Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla la exigencia o recepción de dinero para conceder ventajas académicas, y se recomienda una valoración legal temprana al tratarse de una solicitud de beneficio ligada a una función pública, sin que esto constituya una denuncia oficial ni prejuzgue responsabilidad. Falta confirmar el canal receptor competente y contar con detalles como fecha, materia y palabras recordadas. ¿Podrías indicar si ya existe una calificación final registrada en tu historial?
+MODO: Gemini + autómata + documentos
+AUTÓMATA: {'x': 4, 'y': 3} | prioridad: prioritaria
+VÍAS POSIBLES: personal, UDG, legal
+POR QUÉ: Se relata un posible beneficio ligado a una ventaja académica; requiere valoración institucional y jurídica, sin prejuzgar responsabilidad.
+FRAGMENTOS CONSULTADOS:
+  · 5.1 Fundamento y distribución de funciones: El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla tanto la exigencia o recepción de dinero o bienes para conceder ventajas académicas como el o…
+  · 7.3 Cuándo es insuficiente limitarse a la universidad: Se recomienda valoración legal temprana cuando se describe una solicitud, promesa o entrega de beneficio ligada a una función pública; cuando aparecen amenazas o coacción; cuando existen represalias relevantes; o cuando la persona…
+  · 4.2 Registro y conservación de información: Una cronología útil separa hechos observados, palabras recordadas e interpretaciones. Puede incluir fecha aproximada, lugar o plataforma, materia y grupo, personas presentes, beneficio solicitado, condición académica y respuesta d…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+  [S12] https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf
+  [S16] https://www.diputados.gob.mx/LeyesBiblio/pdf/CNPP.pdf
+  [S13] https://congresoweb.congresojal.gob.mx/BibliotecaVirtual/legislacion/C%C3%B3digos/Documentos_PDF-C%C3%B3digos/C%C3%B3digo%20Penal%20para%20el%20Estado%20Libre%20y%20Soberano%20de%20Jalisco%20-240926.pdf
+  [S17] https://fiscaliaanticorrupcion.jalisco.gob.mx/denuncia

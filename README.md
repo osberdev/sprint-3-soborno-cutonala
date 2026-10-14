@@ -63,14 +63,17 @@ La primera instrucción ejecuta las pruebas automatizadas; la segunda reproduce 
 
 - `evidencias/pruebas_locales_2026-10-13.txt`: siete pruebas ejecutadas y aprobadas. Comprueban recuperación del directorio, selección documental, tratamiento de comentarios indirectos, memoria ante represalia académica, diferenciación de amenaza física, referencias y preparación de la solicitud a Gemini mediante un cliente simulado.
 - `evidencias/consultas_locales_2026-10-13.txt`: interacción ejecutada con consulta institucional, comentario indirecto, reinicio y un relato directo seguido de una posible represalia académica. Incluye respuestas, estados y fragmentos recuperados.
+- `evidencias/consulta_gemini_01.txt`: consulta real ejecutada por el usuario el 13 de octubre de 2026 desde Ubuntu, sobre una solicitud de dinero para aprobar. La salida muestra `Gemini + autómata + documentos`, estado `{'x': 4, 'y': 3}`, prioridad `prioritaria` y recuperación de los apartados 5.1, 7.3 y 4.2. Se verificó que el archivo contiene la respuesta y las referencias. Esta consulta aislada no prueba la continuidad de una conversación con Gemini.
 
 Estos resultados comprueban comportamientos de software en casos concretos; no certifican la precisión jurídica del contenido ni el reconocimiento de cualquier redacción posible.
 
 ## Gemini y pendientes de esta entrega
 
-Existe una integración opcional con Gemini y en la sesión anterior se observaron respuestas reales y un fallo de servicio. Las evidencias nuevas incluidas aquí son locales. Falta registrar una consulta actual a Gemini con su modo de ejecución visible y revisar la respuesta.
+Existe una integración opcional con Gemini. El 13 de octubre de 2026 se registró una consulta real satisfactoria en `evidencias/consulta_gemini_01.txt`. La respuesta identifica las tres vías de orientación, evita determinar responsabilidad y solicita información adicional. Esta revisión confirma el funcionamiento observado; no constituye una validación jurídica independiente de la respuesta. En pruebas anteriores también se observó un fallo del servicio con respuesta local de respaldo.
 
-Para usar la integración se necesita la dependencia `google-genai` y una clave en la variable de entorno `GEMINI_API_KEY`. La clave se carga únicamente en la terminal del usuario y no forma parte del repositorio. La versión instalada del SDK y el modelo deben quedar registrados al realizar la prueba real.
+Para usar la integración se necesita la dependencia `google-genai` y una clave en la variable de entorno `GEMINI_API_KEY`. La clave se carga únicamente en la terminal del usuario y no forma parte del repositorio.
+
+Entorno registrado para la prueba: `google-genai 2.29.0`, según `evidencias/entorno_gemini.txt`. La variable `GEMINI_MODEL` no estaba definida; el código de `chatbot_soborno.py` configura por defecto `gemini-3.5-flash-lite`. Este nombre identifica el modelo solicitado por el programa; la salida guardada no incluye metadatos del modelo devueltos por el servicio.
 
 Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Se configuró como privado; para que el profesor pueda revisarlo será necesario darle acceso con su cuenta de GitHub o acordar otro mecanismo de entrega. La visibilidad privada impide que el enlace por sí solo conceda acceso.
 
