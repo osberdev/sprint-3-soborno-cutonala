@@ -72,7 +72,7 @@ Existe una integración opcional con Gemini y en la sesión anterior se observar
 
 Para usar la integración se necesita la dependencia `google-genai` y una clave en la variable de entorno `GEMINI_API_KEY`. La clave se carga únicamente en la terminal del usuario y no forma parte del repositorio. La versión instalada del SDK y el modelo deben quedar registrados al realizar la prueba real.
 
-También queda pendiente compartir el repositorio mediante un servicio remoto o el mecanismo que acepte el profesor. Un repositorio local no proporciona por sí mismo un enlace de entrega.
+Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Se configuró como privado; para que el profesor pueda revisarlo será necesario darle acceso con su cuenta de GitHub o acordar otro mecanismo de entrega. La visibilidad privada impide que el enlace por sí solo conceda acceso.
 
 ## Límites de la versión
 
