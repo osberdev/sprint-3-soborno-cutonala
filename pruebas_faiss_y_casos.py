@@ -36,6 +36,8 @@ class PruebasCasosYFaiss(unittest.TestCase):
             "id": "T01", "persona": "Docente de Prueba",
             "alias": ["Docente Prueba"], "tema": "soborno",
             "conducta": "habría pedido dinero a cambio de aprobar una materia",
+            "materia": "Asignatura Ficticia", "ciclo": "2024A",
+            "resultado": "el estudiante afirma que aprobó",
             "procedencia": "testimonio directo de una estudiante",
             "fecha_registro": "2026-10-29", "soporte": "relato verbal, sin archivo adjunto",
             "estado": "señalamiento pendiente de corroboración",
@@ -53,6 +55,8 @@ class PruebasCasosYFaiss(unittest.TestCase):
             respuesta, registros = resumen_registro("¿Qué sabes de Docente Prueba?", ruta)
             self.assertEqual([r["id"] for r in registros], ["T01", "T02"])
             self.assertIn("Procedencia: testimonio directo", respuesta)
+            self.assertIn("Materia: Asignatura Ficticia", respuesta)
+            self.assertIn("Ciclo: 2024A", respuesta)
             self.assertIn("pendiente de corroboración", respuesta)
             self.assertNotIn("culpable", respuesta)
             _, solo_soborno = resumen_registro("¿Hay algún profesor acusado de soborno?", ruta)

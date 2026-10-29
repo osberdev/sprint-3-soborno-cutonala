@@ -60,6 +60,9 @@ def cargar_registro_identificado(ruta: Path | None = None) -> list[dict[str, str
             raise ValueError(f"Tema desconocido en {ruta}: {caso['tema']}")
         if not isinstance(caso.get("alias", []), list) or any(not isinstance(a, str) for a in caso.get("alias", [])):
             raise ValueError(f"Los alias deben ser una lista de textos en {ruta}.")
+        if any(clave in caso and not isinstance(caso[clave], str)
+               for clave in ("materia", "ciclo", "resultado", "contexto_evaluacion")):
+            raise ValueError(f"Los detalles opcionales deben ser textos en {ruta}.")
     return casos
 
 
@@ -89,11 +92,14 @@ def resumen_registro(mensaje: str = "", ruta_identificados: Path | None = None) 
         seleccion = [c for c in identificados if c["tema"] == "soborno"] if general else []
     if seleccion:
         etiquetas = {"soborno": "posible intercambio por ventaja académica", "evaluacion": "posible trato preferencial"}
+        detalles = (("materia", "Materia"), ("ciclo", "Ciclo"),
+                    ("resultado", "Resultado referido"), ("contexto_evaluacion", "Evaluación referida"))
         partes = []
         for caso in seleccion:
+            contexto = " ".join(f"{etiqueta}: {caso[clave]}." for clave, etiqueta in detalles if caso.get(clave))
             partes.append(
                 f"- {caso['persona']} — {etiquetas[caso['tema']]}: {caso['conducta']}. "
-                f"Procedencia: {caso['procedencia']}. Soporte: {caso['soporte']}. "
+                f"{contexto} Procedencia: {caso['procedencia']}. Soporte: {caso['soporte']}. "
                 f"Estado: {caso['estado']}."
             )
         return (
