@@ -110,7 +110,7 @@ def evaluar_hechos(mensaje: str, historial: list[dict[str, str]], anterior: dict
     amenaza_academica = amenaza and not amenaza_fisica and bool(
         re.search(r"\b(reprob|bajar la nota|bajar la calificacion|quitar puntos|perder la materia)\w*", conjunto)
     )
-    beneficio = bool(re.search(r"\b(dinero|pagar|pag[oó]|cobrar|cuota|donaci[oó]n|regalo|botella|transferencia|soborno|mordida)\w*", conjunto))
+    beneficio = bool(re.search(r"\b(dinero|pesos?|pag\w*|cobr\w*|cuota|donacion|regalo|botella|transferencia|soborno|mordida)\b", conjunto))
     evaluacion = bool(re.search(r"\b(calificaci[oó]n|nota|acreditar|aprobar|pasar|reprobar|cien|100|materia|puntos)\b", conjunto))
     intercambio = bool(re.search(r"\b(a cambio de|para sacar|para aprobar|para pasar|si pago|si pagas|si doy|si entrego)\b", conjunto))
     excluye = bool(re.search(r"\b(voluntari[ao]|no afecta|sin relacion con|sin cambiar la nota)\b", actual))

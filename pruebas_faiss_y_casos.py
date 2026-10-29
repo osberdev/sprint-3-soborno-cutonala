@@ -86,10 +86,13 @@ class PruebasCasosYFaiss(unittest.TestCase):
 
     def test_antecedente_no_altera_caso_que_se_relata_despues(self):
         chat = ChatSoborno()
-        consulta = chat.responder("¿Hay algún profesor acusado de soborno en el centro?", gemini=True)
+        consulta = chat.responder("¿Hay algún profesor señalado por pedir dinero a cambio de calificaciones?", gemini=True)
         self.assertEqual(consulta["memoria_turnos"], 0)
         self.assertEqual(consulta["modo"], "Local + registro de relatos")
-        caso = chat.responder("El profesor X me pidió dinero a cambio de aprobar la materia")
+        caso = chat.responder(
+            "El profesor X me pidió 100 pesos para croquetas a cambio de ponerme 100 en la materia; "
+            "pagué y la calificación quedó registrada. ¿Cómo procedo?"
+        )
         self.assertEqual(caso["coordenadas"], {"x": 4, "y": 3})
         self.assertIn("UDG", caso["rutas"])
         self.assertIn("legal", caso["rutas"])

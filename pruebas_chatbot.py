@@ -45,6 +45,17 @@ class PruebasSprint3(unittest.TestCase):
         self.assertEqual(continuacion["memoria_turnos"], 2)
         self.assertTrue(any(f["titulo"].startswith("5.5") for f in continuacion["fragmentos"]))
 
+    def test_pago_ya_realizado_en_pesos_se_reconoce(self):
+        chat = ChatSoborno()
+        respuesta = chat.responder(
+            "Un docente me pidió 100 pesos para croquetas a cambio de ponerme 100 en la materia; "
+            "pagué y la calificación quedó registrada. ¿Cómo puedo proceder?"
+        )
+        self.assertEqual(respuesta["coordenadas"], {"x": 4, "y": 3})
+        self.assertEqual(respuesta["prioridad"], "prioritaria")
+        self.assertIn("UDG", respuesta["rutas"])
+        self.assertIn("legal", respuesta["rutas"])
+
     def test_amenaza_fisica_si_activa_orientacion_inmediata(self):
         chat = ChatSoborno()
         chat.responder("Un docente me pidió dinero a cambio de aprobar la materia")
