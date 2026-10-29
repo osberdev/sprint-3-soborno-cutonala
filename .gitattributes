@@ -4,3 +4,4 @@
 *.json text eol=lf
 *.txt text eol=lf
 *.docx binary
+*.pdf binary

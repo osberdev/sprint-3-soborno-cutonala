@@ -1,0 +1,67 @@
+"""Pruebas locales de procedencia y enrutamiento; no llaman a servicios externos."""
+
+import unittest
+
+from casos_consulta import pregunta_por_antecedentes, resumen_registro
+from chatbot_soborno import ChatSoborno
+from faiss_soborno import leer_documentos, _fragmentar
+
+
+class PruebasCasosYFaiss(unittest.TestCase):
+    def test_antecedente_no_se_toma_como_denuncia_personal(self):
+        self.assertTrue(pregunta_por_antecedentes("¿Hay algún profesor acusado de soborno en CUTonalá?"))
+        self.assertTrue(pregunta_por_antecedentes("¿Qué sabes del profesor X?"))
+        self.assertFalse(pregunta_por_antecedentes("El profesor X me pidió dinero para aprobar"))
+        self.assertFalse(pregunta_por_antecedentes("¿Qué sabes de Primer Contacto?"))
+
+    def test_fuente_indica_que_los_relatos_no_estan_corroborrados(self):
+        respuesta, registros = resumen_registro()
+        self.assertEqual([r["id"] for r in registros], ["C01", "C02"])
+        self.assertTrue(all("no corroborado" in r["estado"] for r in registros))
+        self.assertIn("no hay un caso nominal y verificable", respuesta)
+
+    def test_antecedente_no_altera_caso_que_se_relata_despues(self):
+        chat = ChatSoborno()
+        consulta = chat.responder("¿Hay algún profesor acusado de soborno en el centro?", gemini=True)
+        self.assertEqual(consulta["memoria_turnos"], 0)
+        self.assertEqual(consulta["modo"], "Local + registro de relatos")
+        caso = chat.responder("El profesor X me pidió dinero a cambio de aprobar la materia")
+        self.assertEqual(caso["coordenadas"], {"x": 4, "y": 3})
+        self.assertIn("UDG", caso["rutas"])
+        self.assertIn("legal", caso["rutas"])
+        self.assertEqual(caso["memoria_turnos"], 1)
+
+    def test_fallo_de_busqueda_vectorial_conserva_respuesta_local(self):
+        class BuscadorCaido:
+            def buscar_registro(self):
+                raise RuntimeError("servicio temporalmente no disponible")
+
+            def buscar(self, pregunta, estado, limite=3):
+                raise RuntimeError("servicio temporalmente no disponible")
+
+        chat = ChatSoborno(buscador=BuscadorCaido())
+        antecedente = chat.responder("¿Hay algún profesor acusado de soborno?")
+        self.assertIn("no hay un caso nominal", antecedente["respuesta_chatbot"])
+        self.assertIsNotNone(antecedente["fallo_faiss"])
+        caso = chat.responder("Un docente me pidió dinero para aprobar la materia")
+        self.assertEqual(caso["coordenadas"], {"x": 4, "y": 3})
+        self.assertTrue(caso["fragmentos"])
+        self.assertIsNotNone(caso["fallo_faiss"])
+
+    def test_pdf_separados_con_procedencia_y_pagina(self):
+        grupos = leer_documentos()
+        self.assertGreater(len(grupos["procesos"]), 5)
+        self.assertGreater(len(grupos["relatos"]), 1)
+        for tipo, fragmentos in grupos.items():
+            self.assertTrue(all(f["tipo"] == tipo and f["pagina"] >= 1 for f in fragmentos))
+            self.assertTrue(all(len(f["texto"]) <= 1000 for f in fragmentos))
+
+    def test_fragmentos_cubren_final_del_documento(self):
+        texto = " ".join(f"palabra{i}" for i in range(300))
+        fragmentos = _fragmentar(texto)
+        self.assertGreater(len(fragmentos), 1)
+        self.assertIn("palabra299", fragmentos[-1])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

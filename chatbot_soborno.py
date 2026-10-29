@@ -17,6 +17,7 @@ import re
 import sys
 from typing import Any
 
+from casos_consulta import pregunta_por_antecedentes, resumen_registro
 from sprint3_soborno import SesionAutomata, intencion_pregunta, normalizar
 
 
@@ -272,16 +273,51 @@ encabezados, viñetas ni Markdown. Máximo 120 palabras."""
 
 
 class ChatSoborno:
-    def __init__(self) -> None:
+    def __init__(self, buscador: Any | None = None) -> None:
         self.sesion = SesionAutomata()
-        self.buscador = Buscador()
+        self.buscador = buscador if buscador is not None else Buscador()
         self.historial_usuario: list[str] = []
 
     def responder(self, mensaje: str, gemini: bool = False) -> dict[str, Any]:
+        if pregunta_por_antecedentes(mensaje):
+            respuesta, registros = resumen_registro()
+            # Una pregunta por referencias no es un hecho del caso del estudiante.
+            # No se incorpora a la memoria del autómata ni se envía a Gemini.
+            fragmentos = []
+            fallo_faiss = None
+            if hasattr(self.buscador, "buscar_registro"):
+                try:
+                    fragmentos = self.buscador.buscar_registro()
+                except Exception as error:
+                    fallo_faiss = str(error)
+            return {
+                "success": True,
+                "coordenadas": dict(self.sesion.estado),
+                "estado": "Consulta de antecedentes",
+                "prioridad": "informativa",
+                "tipo_riesgo": None,
+                "rutas": [],
+                "justificacion": "El registro contiene relatos indirectos sin atribución nominal verificable.",
+                "respuesta_chatbot": respuesta,
+                "modo": "FAISS + registro de relatos" if fragmentos else "Local + registro de relatos",
+                "fragmentos": fragmentos,
+                "casos_consultados": [r["id"] for r in registros],
+                "fuentes_consultadas": {},
+                "fallo_gemini": None,
+                "fallo_faiss": fallo_faiss,
+                "memoria_turnos": len(self.sesion.historial) // 2,
+            }
         estado = self.sesion.procesar_mensaje(mensaje)
         if not estado["success"]:
             return estado
-        fragmentos = self.buscador.buscar(mensaje, estado)
+        fallo_faiss = None
+        try:
+            fragmentos = self.buscador.buscar(mensaje, estado)
+        except Exception as error:
+            if isinstance(self.buscador, Buscador):
+                raise
+            fallo_faiss = str(error)
+            fragmentos = Buscador().buscar(mensaje, estado)
         respuesta = estado["respuesta"]
         if fragmentos:
             primero = fragmentos[0]
@@ -307,6 +343,7 @@ class ChatSoborno:
             "fragmentos": fragmentos,
             "fuentes_consultadas": ids_y_enlaces(fragmentos, estado),
             "fallo_gemini": fallo_gemini,
+            "fallo_faiss": fallo_faiss,
         }
 
 
@@ -326,6 +363,8 @@ def mostrar(resultado: dict[str, Any]) -> None:
         print("FRAGMENTOS CONSULTADOS:")
         for f in resultado["fragmentos"]:
             print(f"  · {f['titulo']}: {f['texto'][:230]}{'…' if len(f['texto']) > 230 else ''}")
+    if resultado.get("casos_consultados"):
+        print("REGISTRO ANÓNIMO CONSULTADO:", ", ".join(resultado["casos_consultados"]))
     if resultado["fuentes_consultadas"]:
         print("FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:")
         for clave, url in resultado["fuentes_consultadas"].items():
@@ -333,6 +372,9 @@ def mostrar(resultado: dict[str, Any]) -> None:
     if resultado["fallo_gemini"]:
         print("GEMINI NO RESPONDIÓ:", resultado["fallo_gemini"])
         print("Se mostró la respuesta local; puedes volver a probar Gemini más tarde.")
+    if resultado.get("fallo_faiss"):
+        print("FAISS NO RESPONDIÓ:", resultado["fallo_faiss"])
+        print("Se usó la búsqueda local para conservar la orientación.")
 
 
 DEMO = [
@@ -349,10 +391,30 @@ def main() -> int:
     parser.add_argument("--demo", action="store_true", help="muestra una conversación ficticia reproducible")
     parser.add_argument("--pregunta", help="procesa un solo mensaje y termina")
     parser.add_argument("--gemini", action="store_true", help="usa Gemini para redactar la orientación")
+    parser.add_argument("--faiss", action="store_true", help="recupera de los PDF con el índice FAISS individual")
+    parser.add_argument("--reindexar-faiss", action="store_true", help="reconstruye el índice desde los PDF individuales")
     args = parser.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    chat = ChatSoborno()
+    if args.reindexar_faiss:
+        from faiss_soborno import reconstruir_indice
+        try:
+            cantidades = reconstruir_indice()
+        except (RuntimeError, FileNotFoundError, ValueError) as error:
+            print(f"No se pudo reconstruir FAISS: {error}", file=sys.stderr)
+            return 2
+        print("Índice individual actualizado:", cantidades)
+        return 0
+    try:
+        if args.faiss:
+            from faiss_soborno import BuscadorFaiss
+            buscador = BuscadorFaiss()
+        else:
+            buscador = Buscador()
+    except (RuntimeError, FileNotFoundError, ValueError) as error:
+        print(f"No se pudo cargar FAISS: {error}", file=sys.stderr)
+        return 2
+    chat = ChatSoborno(buscador=buscador)
     if args.gemini and not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
         print("No hay clave para --gemini. Ejecuta sin esa opción para la demostración local.", file=sys.stderr)
         return 2
@@ -375,7 +437,7 @@ def main() -> int:
         if mensaje.casefold() == "salir":
             break
         if mensaje.casefold() == "reset":
-            chat = ChatSoborno()
+            chat = ChatSoborno(buscador=buscador)
             print("Caso reiniciado; la base de conocimientos sigue disponible.")
             continue
         if args.gemini:

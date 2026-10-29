@@ -8,6 +8,7 @@ __pycache__/
 secrets.*
 credentials*.json
 *.key
+faiss_index_soborno/
 .vscode/
 .idea/
 ~$*

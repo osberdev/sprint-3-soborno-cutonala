@@ -1,0 +1,5 @@
+# Índice documental individual; instalar dentro del entorno del proyecto.
+google-genai
+faiss-cpu
+numpy
+pypdf

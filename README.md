@@ -28,12 +28,39 @@ Mensaje del estudiante
 | `sprint3_soborno.py` | Reglas, estado y memoria de la sesión. |
 | `conocimientos/investigacion_soborno.md` | Texto de la investigación utilizado como base documental. |
 | `conocimientos/primer_contacto_soborno.md` | Ficha institucional que consulta el motor de reglas. |
+| `conocimientos/casos_soborno.md` | Relatos anónimos no corroborados, con procedencia, datos faltantes y límites de uso. |
+| `conocimientos_pdf/` | Dos PDF independientes: investigación de procesos y registro de relatos. |
+| `faiss_soborno.py` | Construcción y consulta opcional del índice FAISS individual desde esos PDF. |
+| `casos_consulta.py` | Respuesta prudente a preguntas por antecedentes de docentes. |
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
 | `pruebas_chatbot.py` | Siete pruebas automatizadas; incluyen un cliente simulado de Gemini. |
+| `pruebas_faiss_y_casos.py` | Seis pruebas locales del registro, la transición a un relato directo, la extracción de PDF y el respaldo cuando falla la búsqueda vectorial. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
 
-La recuperación se realiza por términos y prioridades documentales. Esta versión no utiliza embeddings ni FAISS. La memoria conserva información durante la sesión y se reinicia con `reset`.
+El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional basado en los dos PDF individuales. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
+
+## Relación con la base compartida del profesor
+
+`app.py` y `Base.rar` muestran el flujo de referencia del equipo: cargar PDF de `conocimientos/`, dividirlos en fragmentos de 1 000 caracteres con 200 de solapamiento, producir embeddings con `gemini-embedding-2`, guardar un índice FAISS y recuperarlo en consultas posteriores. El índice entregado en `Base.rar` corresponde a otros documentos universitarios; no se mezcla con los PDF del módulo de soborno. Su archivo `index.pkl` no se carga, porque la deserialización de un archivo recibido puede ejecutar contenido no confiable.
+
+Este módulo conserva el contrato sencillo `buscar(pregunta, estado, limite=3)` para que el chat use el buscador local o FAISS. También conserva el autómata, las rutas de orientación y los identificadores de fuentes existentes. **Los archivos `faiss_index_soborno/` no son compatibles directamente con `FAISS.load_local()` de `app.py`:** aquí el índice se guarda con FAISS y los metadatos en JSON, sin `index.pkl`. Para integrar con el equipo hay dos rutas concretas: copiar los PDF revisados a `conocimientos/` de la aplicación compartida y reconstruir su índice LangChain, o conectar `BuscadorFaiss` como buscador del módulo individual. En la primera ruta, `app.py` carga automáticamente el índice viejo si encuentra `faiss_index/`; hay que conservarlo como respaldo fuera de esa ruta antes de ejecutar la reconstrucción. Antes de mezclar documentos, el equipo debe revisar procedencia y duplicados; los relatos indirectos no se convierten en hechos sobre docentes identificados.
+
+### Construir y consultar FAISS
+
+Desde Ubuntu, dentro de este repositorio y con el entorno virtual activado:
+
+```bash
+python -m pip install -r requirements-faiss.txt
+read -rs 'GEMINI_API_KEY?Pega la clave y pulsa Enter: '
+export GEMINI_API_KEY
+python chatbot_soborno.py --reindexar-faiss
+python chatbot_soborno.py --faiss
+```
+
+La indexación requiere una clave y conexión a Gemini, pues genera embeddings de los fragmentos de ambos PDF. Después guarda archivos `.faiss`, metadatos JSON y un manifiesto con huellas de los PDF en `faiss_index_soborno/`. Una consulta en modo `--faiss` también necesita la clave para convertir la pregunta en vector. Si cambian los PDF, reconstruye el índice. El índice generado queda fuera de Git; los PDF y el código sí son reproducibles. Se puede combinar `--faiss --gemini` para redactar con Gemini, o usar sólo `--faiss` para mantener la redacción local.
+
+Hasta que se ejecute `--reindexar-faiss` con una clave válida, el índice individual no existe y el modo `--faiss` no está verificado en una llamada real a la API. El modo local sigue funcionando sin esa dependencia. Si falla la consulta vectorial durante una conversación, se utiliza la búsqueda local y se informa del fallo.
 
 ## Documentación de los tres niveles
 
@@ -53,6 +80,7 @@ Con Python 3.10 o posterior, desde esta carpeta:
 
 ```bash
 python3 pruebas_chatbot.py
+python3 pruebas_faiss_y_casos.py
 python3 chatbot_soborno.py --demo
 python3 chatbot_soborno.py
 ```
@@ -75,7 +103,7 @@ Para usar la integración se necesita la dependencia `google-genai` y una clave 
 
 Entorno registrado para la prueba: `google-genai 2.29.0`, según `evidencias/entorno_gemini.txt`. La variable `GEMINI_MODEL` no estaba definida; el código de `chatbot_soborno.py` configura por defecto `gemini-3.5-flash-lite`. Este nombre identifica el modelo solicitado por el programa; la salida guardada no incluye metadatos del modelo devueltos por el servicio.
 
-Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Se configuró como privado; para que el profesor pueda revisarlo será necesario darle acceso con su cuenta de GitHub o acordar otro mecanismo de entrega. La visibilidad privada impide que el enlace por sí solo conceda acceso.
+Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Su visibilidad se comprobó como pública el 29 de octubre de 2026.
 
 ## Límites de la versión
 
