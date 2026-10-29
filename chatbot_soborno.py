@@ -198,6 +198,18 @@ def ids_y_enlaces(fragmentos: list[dict[str, Any]], estado: dict[str, Any]) -> d
     return {i: FUENTES[i]["url"] for i in ids if i in FUENTES}
 
 
+def texto_visible(fragmento: dict[str, Any]) -> str:
+    """Quita la cabecera repetida del PDF sin alterar el texto indexado."""
+    texto = fragmento["texto"]
+    if fragmento.get("archivo") == "investigacion_soborno.pdf":
+        texto = re.sub(
+            r"^Investigación documental\s*\|\s*CUTonalá\s*\|\s*Corte:\s*\d{1,2}\s+\w+\s+\d{4}\s+\d+\s*",
+            "",
+            texto,
+        )
+    return texto
+
+
 def explicar_con_gemini(
     mensaje: str, estado: dict[str, Any], fragmentos: list[dict[str, Any]], historial: list[str]
 ) -> str:
@@ -321,7 +333,7 @@ class ChatSoborno:
         respuesta = estado["respuesta"]
         if fragmentos:
             primero = fragmentos[0]
-            frases = re.split(r"(?<=[.!?])\s+", primero["texto"])
+            frases = re.split(r"(?<=[.!?])\s+", texto_visible(primero))
             extracto = " ".join(frases[:2]).replace("**", "")
             if len(extracto) > 420:
                 extracto = extracto[:420].rsplit(" ", 1)[0] + "…"
@@ -336,12 +348,23 @@ class ChatSoborno:
             except Exception as error:
                 fallo_gemini = str(error)
         self.historial_usuario.append(mensaje)
+        fragmentos_para_enlaces = fragmentos
+        if intencion_pregunta(mensaje) and fragmentos and fragmentos[0].get("pagina"):
+            principal = fragmentos[0]
+            fragmentos_para_enlaces = [
+                f for f in fragmentos
+                if f.get("archivo") == principal.get("archivo") and f.get("pagina") == principal["pagina"]
+            ]
         return {
             **estado,
             "respuesta_chatbot": respuesta,
-            "modo": "Gemini + autómata + documentos" if gemini and not fallo_gemini else "Local + autómata + documentos",
+            "modo": (
+                ("Gemini" if gemini and not fallo_gemini else "Local")
+                + " + autómata + "
+                + ("FAISS" if getattr(self.buscador, "es_faiss", False) and not fallo_faiss else "documentos")
+            ),
             "fragmentos": fragmentos,
-            "fuentes_consultadas": ids_y_enlaces(fragmentos, estado),
+            "fuentes_consultadas": ids_y_enlaces(fragmentos_para_enlaces, estado),
             "fallo_gemini": fallo_gemini,
             "fallo_faiss": fallo_faiss,
         }
@@ -362,7 +385,8 @@ def mostrar(resultado: dict[str, Any]) -> None:
     if resultado["fragmentos"]:
         print("FRAGMENTOS CONSULTADOS:")
         for f in resultado["fragmentos"]:
-            print(f"  · {f['titulo']}: {f['texto'][:230]}{'…' if len(f['texto']) > 230 else ''}")
+            visible = texto_visible(f)
+            print(f"  · {f['titulo']}: {visible[:230]}{'…' if len(visible) > 230 else ''}")
     if resultado.get("casos_consultados"):
         print("REGISTRO ANÓNIMO CONSULTADO:", ", ".join(resultado["casos_consultados"]))
     if resultado["fuentes_consultadas"]:

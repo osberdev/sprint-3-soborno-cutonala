@@ -52,6 +52,26 @@ class PruebasCasosYFaiss(unittest.TestCase):
         self.assertTrue(caso["fragmentos"])
         self.assertIsNotNone(caso["fallo_faiss"])
 
+    def test_modo_faiss_muestra_fragmento_sin_cabecera_pdf(self):
+        class BuscadorFicticio:
+            es_faiss = True
+
+            def buscar(self, pregunta, estado, limite=3):
+                return [{"titulo": "investigacion_soborno, página 10", "pagina": 10,
+                         "archivo": "investigacion_soborno.pdf", "fuentes": [],
+                         "texto": "Investigación documental | CUTonalá | Corte: 8 oct 2026 10 "
+                                  "6 Directorio. Primer Contacto está en el CAE."},
+                        {"titulo": "investigacion_soborno, página 7", "pagina": 7,
+                         "archivo": "investigacion_soborno.pdf", "fuentes": ["S01"],
+                         "texto": "Un apartado distinto sobre procedimientos."}]
+
+        respuesta = ChatSoborno(buscador=BuscadorFicticio()).responder("¿Dónde encuentro Primer Contacto?")
+        self.assertEqual(respuesta["modo"], "Local + autómata + FAISS")
+        self.assertIn("6 Directorio", respuesta["respuesta_chatbot"])
+        self.assertNotIn("Corte: 8 oct", respuesta["respuesta_chatbot"])
+        self.assertIn("S05", respuesta["fuentes_consultadas"])
+        self.assertNotIn("S01", respuesta["fuentes_consultadas"])
+
     def test_pdf_separados_con_procedencia_y_pagina(self):
         grupos = leer_documentos()
         self.assertGreater(len(grupos["procesos"]), 5)

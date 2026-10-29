@@ -35,7 +35,7 @@ Mensaje del estudiante
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
 | `pruebas_chatbot.py` | Siete pruebas automatizadas; incluyen un cliente simulado de Gemini. |
-| `pruebas_faiss_y_casos.py` | Siete pruebas locales del registro, la transición a un relato directo, la extracción de PDF, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
+| `pruebas_faiss_y_casos.py` | Ocho pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
 
 El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional basado en los dos PDF individuales. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
@@ -63,6 +63,8 @@ La indexación requiere una clave y conexión a Gemini, pues genera embeddings d
 Hasta que se ejecute `--reindexar-faiss` con una clave válida, el índice individual no existe y el modo `--faiss` no está verificado en una llamada real a la API. El modo local sigue funcionando sin esa dependencia. Si falla la consulta vectorial durante una conversación, se utiliza la búsqueda local y se informa del fallo.
 
 La reconstrucción conserva por separado cada PDF ya indexado. Si Gemini devuelve un límite temporal (429), espera el reintento automático; si la ejecución termina sin completar ambos documentos, vuelve a lanzar `--reindexar-faiss` cuando se restablezca la cuota. Los grupos guardados y validados se reutilizan sin volver a generar sus vectores.
+
+En la salida de `--faiss`, «MODO» identifica expresamente FAISS. La cabecera repetida del PDF se omite al mostrar fragmentos; los vectores almacenados no se alteran, así que este ajuste no exige reconstruir el índice. En preguntas informativas, los enlaces corresponden al apartado institucional y a los fragmentos de la misma página que el resultado principal.
 
 ## Documentación de los tres niveles
 

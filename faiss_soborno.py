@@ -211,6 +211,8 @@ def reconstruir_indice(cliente: Any | None = None) -> dict[str, int]:
 
 
 class BuscadorFaiss:
+    es_faiss = True
+
     def __init__(self, cliente: Any | None = None) -> None:
         faiss, np = _dependencias()
         self.faiss = faiss
