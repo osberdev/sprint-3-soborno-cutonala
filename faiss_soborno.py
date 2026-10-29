@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import time
 from typing import Any
 
 
@@ -125,7 +126,16 @@ def _embeddings(cliente: Any, textos: list[str]) -> list[list[float]]:
     for inicio in range(0, len(textos), 8):
         lote = textos[inicio:inicio + 8]
         entradas = [types.Content(parts=[types.Part.from_text(text=t)]) for t in lote]
-        salida = cliente.models.embed_content(model=MODEL, contents=entradas)
+        for intento in range(3):
+            try:
+                salida = cliente.models.embed_content(model=MODEL, contents=entradas)
+                break
+            except Exception as error:
+                # El nivel gratuito puede agotar su cuota por minuto a mitad del PDF.
+                if getattr(error, "code", None) != 429 or intento == 2:
+                    raise
+                print("Cuota por minuto alcanzada; reintentando este lote en 30 segundos...", flush=True)
+                time.sleep(30)
         recibidos = [list(item.values or []) for item in (salida.embeddings or [])]
         if len(recibidos) != len(lote) or any(len(v) != DIMENSION for v in recibidos):
             raise RuntimeError("Gemini devolvió un número o tamaño de embeddings inesperado.")
@@ -134,30 +144,68 @@ def _embeddings(cliente: Any, textos: list[str]) -> list[list[float]]:
     return vectores
 
 
+def _meta_grupo(tipo: str, fragmentos: list[dict[str, Any]], huella: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "modelo": huella["modelo"],
+        "dimension": huella["dimension"],
+        "tamano": huella["tamano"],
+        "solapamiento": huella["solapamiento"],
+        "archivo": huella["archivos"][tipo],
+        "fragmentos": len(fragmentos),
+    }
+
+
+def _grupo_guardado_es_valido(tipo: str, fragmentos: list[dict[str, Any]], huella: dict[str, Any], faiss: Any) -> bool:
+    """Sólo reutiliza un grupo completo de los mismos PDF, modelo y fragmentos."""
+    try:
+        meta = json.loads((INDEX_DIR / f"{tipo}.meta.json").read_text(encoding="utf-8"))
+        guardados = json.loads((INDEX_DIR / f"{tipo}.json").read_text(encoding="utf-8"))
+        indice = faiss.read_index(str(INDEX_DIR / f"{tipo}.faiss"))
+    except (OSError, ValueError, RuntimeError):
+        return False
+    return (
+        meta == _meta_grupo(tipo, fragmentos, huella)
+        and guardados == fragmentos
+        and indice.d == DIMENSION
+        and indice.ntotal == len(fragmentos)
+    )
+
+
+def _guardar_grupo(tipo: str, indice: Any, fragmentos: list[dict[str, Any]], huella: dict[str, Any], faiss: Any) -> None:
+    with tempfile.NamedTemporaryFile(dir=INDEX_DIR, suffix=".faiss", delete=False) as tmp:
+        ruta_indice = Path(tmp.name)
+    faiss.write_index(indice, str(ruta_indice))
+    with tempfile.NamedTemporaryFile(dir=INDEX_DIR, suffix=".json", mode="w", encoding="utf-8", delete=False) as tmp:
+        json.dump(fragmentos, tmp, ensure_ascii=False, indent=2)
+        ruta_fragmentos = Path(tmp.name)
+    with tempfile.NamedTemporaryFile(dir=INDEX_DIR, suffix=".json", mode="w", encoding="utf-8", delete=False) as tmp:
+        json.dump(_meta_grupo(tipo, fragmentos, huella), tmp, ensure_ascii=False, indent=2)
+        ruta_meta = Path(tmp.name)
+    os.replace(ruta_indice, INDEX_DIR / f"{tipo}.faiss")
+    os.replace(ruta_fragmentos, INDEX_DIR / f"{tipo}.json")
+    os.replace(ruta_meta, INDEX_DIR / f"{tipo}.meta.json")
+
+
 def reconstruir_indice(cliente: Any | None = None) -> dict[str, int]:
-    """Reindexa ambos PDF. No abre index.pkl ni el índice recibido del profesor."""
+    """Reanuda por PDF si hay un grupo válido. No abre el index.pkl recibido."""
     faiss, np = _dependencias()
     cliente = cliente or _cliente()
     grupos = leer_documentos()
     huella = _huella()
-    temporales: dict[str, tuple[Path, Path]] = {}
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
     for tipo, fragmentos in grupos.items():
+        if _grupo_guardado_es_valido(tipo, fragmentos, huella, faiss):
+            print(f"Reutilizando {tipo}: {len(fragmentos)} vectores guardados.", flush=True)
+            continue
         vectores = np.asarray(_embeddings(cliente, _textos_para_embedding(fragmentos)), dtype="float32")
         indice = faiss.IndexFlatL2(DIMENSION)
         indice.add(vectores)
-        with tempfile.NamedTemporaryFile(dir=INDEX_DIR, suffix=".faiss", delete=False) as tmp:
-            ruta_indice = Path(tmp.name)
-        faiss.write_index(indice, str(ruta_indice))
-        with tempfile.NamedTemporaryFile(dir=INDEX_DIR, suffix=".json", mode="w", encoding="utf-8", delete=False) as tmp:
-            json.dump(fragmentos, tmp, ensure_ascii=False, indent=2)
-            ruta_fragmentos = Path(tmp.name)
-        temporales[tipo] = ruta_indice, ruta_fragmentos
+        _guardar_grupo(tipo, indice, fragmentos, huella, faiss)
+        print(f"Guardado {tipo}: {len(fragmentos)} vectores.", flush=True)
     # El manifiesto se escribe al final: sólo un índice completo se considera vigente.
-    (INDEX_DIR / "manifest.json").unlink(missing_ok=True)
-    for tipo, (ruta_indice, ruta_fragmentos) in temporales.items():
-        os.replace(ruta_indice, INDEX_DIR / f"{tipo}.faiss")
-        os.replace(ruta_fragmentos, INDEX_DIR / f"{tipo}.json")
+    for tipo, fragmentos in grupos.items():
+        if not _grupo_guardado_es_valido(tipo, fragmentos, huella, faiss):
+            raise RuntimeError(f"El grupo {tipo} no se guardó correctamente.")
     (INDEX_DIR / "manifest.json").write_text(json.dumps(huella, ensure_ascii=False, indent=2), encoding="utf-8")
     return {tipo: len(fragmentos) for tipo, fragmentos in grupos.items()}
 

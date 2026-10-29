@@ -1,10 +1,14 @@
 """Pruebas locales de procedencia y enrutamiento; no llaman a servicios externos."""
 
+import importlib.util
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from casos_consulta import pregunta_por_antecedentes, resumen_registro
 from chatbot_soborno import ChatSoborno
-from faiss_soborno import leer_documentos, _fragmentar
+from faiss_soborno import DIMENSION, MODEL, leer_documentos, reconstruir_indice, _fragmentar
 
 
 class PruebasCasosYFaiss(unittest.TestCase):
@@ -61,6 +65,37 @@ class PruebasCasosYFaiss(unittest.TestCase):
         fragmentos = _fragmentar(texto)
         self.assertGreater(len(fragmentos), 1)
         self.assertIn("palabra299", fragmentos[-1])
+
+    @unittest.skipUnless(importlib.util.find_spec("faiss"), "FAISS no está instalado en este Python")
+    def test_reconstruccion_reanuda_sin_repetir_pdf_terminado(self):
+        grupos = {
+            tipo: [{"titulo": tipo, "texto": "texto de prueba", "fuentes": [], "tipo": tipo,
+                    "archivo": f"{tipo}.pdf", "pagina": 1}]
+            for tipo in ("procesos", "relatos")
+        }
+        huella = {"modelo": MODEL, "dimension": DIMENSION, "tamano": 1000, "solapamiento": 200,
+                  "archivos": {tipo: {"nombre": f"{tipo}.pdf", "sha256": tipo} for tipo in grupos}}
+        llamadas = []
+
+        def embeddings_ficticios(cliente, textos):
+            llamadas.append(textos)
+            if len(llamadas) == 2:
+                raise RuntimeError("cuota temporal agotada")
+            return [[0.01] * DIMENSION for _ in textos]
+
+        with tempfile.TemporaryDirectory() as temporal, \
+                patch("faiss_soborno.INDEX_DIR", Path(temporal)), \
+                patch("faiss_soborno.leer_documentos", return_value=grupos), \
+                patch("faiss_soborno._huella", return_value=huella), \
+                patch("faiss_soborno._embeddings", side_effect=embeddings_ficticios):
+            with self.assertRaisesRegex(RuntimeError, "cuota temporal"):
+                reconstruir_indice(cliente=object())
+            self.assertTrue((Path(temporal) / "procesos.meta.json").is_file())
+            self.assertFalse((Path(temporal) / "manifest.json").exists())
+            resultado = reconstruir_indice(cliente=object())
+            self.assertEqual(resultado, {"procesos": 1, "relatos": 1})
+            self.assertEqual(len(llamadas), 3)
+            self.assertTrue((Path(temporal) / "manifest.json").is_file())
 
 
 if __name__ == "__main__":

@@ -403,6 +403,11 @@ def main() -> int:
         except (RuntimeError, FileNotFoundError, ValueError) as error:
             print(f"No se pudo reconstruir FAISS: {error}", file=sys.stderr)
             return 2
+        except Exception as error:
+            if getattr(error, "code", None) == 429:
+                print("Gemini agotó la cuota temporal. Los PDF completados quedaron guardados; vuelve a ejecutar --reindexar-faiss más tarde.", file=sys.stderr)
+                return 2
+            raise
         print("Índice individual actualizado:", cantidades)
         return 0
     try:

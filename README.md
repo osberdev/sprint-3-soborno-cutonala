@@ -35,7 +35,7 @@ Mensaje del estudiante
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
 | `pruebas_chatbot.py` | Siete pruebas automatizadas; incluyen un cliente simulado de Gemini. |
-| `pruebas_faiss_y_casos.py` | Seis pruebas locales del registro, la transición a un relato directo, la extracción de PDF y el respaldo cuando falla la búsqueda vectorial. |
+| `pruebas_faiss_y_casos.py` | Siete pruebas locales del registro, la transición a un relato directo, la extracción de PDF, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
 
 El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional basado en los dos PDF individuales. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
@@ -61,6 +61,8 @@ python chatbot_soborno.py --faiss
 La indexación requiere una clave y conexión a Gemini, pues genera embeddings de los fragmentos de ambos PDF. Después guarda archivos `.faiss`, metadatos JSON y un manifiesto con huellas de los PDF en `faiss_index_soborno/`. Una consulta en modo `--faiss` también necesita la clave para convertir la pregunta en vector. Si cambian los PDF, reconstruye el índice. El índice generado queda fuera de Git; los PDF y el código sí son reproducibles. Se puede combinar `--faiss --gemini` para redactar con Gemini, o usar sólo `--faiss` para mantener la redacción local.
 
 Hasta que se ejecute `--reindexar-faiss` con una clave válida, el índice individual no existe y el modo `--faiss` no está verificado en una llamada real a la API. El modo local sigue funcionando sin esa dependencia. Si falla la consulta vectorial durante una conversación, se utiliza la búsqueda local y se informa del fallo.
+
+La reconstrucción conserva por separado cada PDF ya indexado. Si Gemini devuelve un límite temporal (429), espera el reintento automático; si la ejecución termina sin completar ambos documentos, vuelve a lanzar `--reindexar-faiss` cuando se restablezca la cuota. Los grupos guardados y validados se reutilizan sin volver a generar sus vectores.
 
 ## Documentación de los tres niveles
 
