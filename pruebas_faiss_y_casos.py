@@ -13,6 +13,12 @@ from faiss_soborno import DIMENSION, MODEL, leer_documentos, reconstruir_indice,
 
 
 class PruebasCasosYFaiss(unittest.TestCase):
+    def setUp(self):
+        ruta_ausente = Path(__file__).resolve().parent / "conocimientos" / "sin_registro_de_prueba.json"
+        parche = patch("casos_consulta.REGISTRO_IDENTIFICADO", ruta_ausente)
+        parche.start()
+        self.addCleanup(parche.stop)
+
     def test_antecedente_no_se_toma_como_denuncia_personal(self):
         self.assertTrue(pregunta_por_antecedentes("¿Hay algún profesor acusado de soborno en CUTonalá?"))
         self.assertTrue(pregunta_por_antecedentes("¿Qué sabes del profesor X?"))
@@ -28,27 +34,39 @@ class PruebasCasosYFaiss(unittest.TestCase):
     def test_testimonio_nominal_se_atribuye_sin_darlo_por_probado(self):
         caso = {
             "id": "T01", "persona": "Docente de Prueba",
+            "alias": ["Docente Prueba"], "tema": "soborno",
             "conducta": "habría pedido dinero a cambio de aprobar una materia",
             "procedencia": "testimonio directo de una estudiante",
             "fecha_registro": "2026-10-29", "soporte": "relato verbal, sin archivo adjunto",
             "estado": "señalamiento pendiente de corroboración",
         }
+        evaluacion = {
+            "id": "T02", "persona": "Docente de Prueba",
+            "alias": ["Docente Prueba"],
+            "tema": "evaluacion", "conducta": "habría dado trato preferencial a amistades",
+            "procedencia": "comentario indirecto de clase", "fecha_registro": "2026-10-29",
+            "soporte": "sin documento adjunto", "estado": "comentario no corroborado",
+        }
         temporal_base = Path(__file__).resolve().parents[2] / "tmp"
         temporal_base.mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=temporal_base) as temporal:
             ruta = Path(temporal) / "casos_docentes.local.json"
-            ruta.write_text(json.dumps({"casos": [caso]}, ensure_ascii=False), encoding="utf-8")
-            respuesta, registros = resumen_registro("¿Qué sabes de Docente de Prueba?", ruta)
-            self.assertEqual([r["id"] for r in registros], ["T01"])
-            self.assertIn("según testimonio directo", respuesta)
+            ruta.write_text(json.dumps({"casos": [caso, evaluacion]}, ensure_ascii=False), encoding="utf-8")
+            respuesta, registros = resumen_registro("¿Qué sabes de Docente Prueba?", ruta)
+            self.assertEqual([r["id"] for r in registros], ["T01", "T02"])
+            self.assertIn("Procedencia: testimonio directo", respuesta)
             self.assertIn("pendiente de corroboración", respuesta)
             self.assertNotIn("culpable", respuesta)
+            _, solo_soborno = resumen_registro("¿Hay algún profesor acusado de soborno?", ruta)
+            self.assertEqual([r["id"] for r in solo_soborno], ["T01"])
+            _, solo_evaluacion = resumen_registro("¿Qué sabes del amiguismo de Docente de Prueba?", ruta)
+            self.assertEqual([r["id"] for r in solo_evaluacion], ["T02"])
             otra, otros_registros = resumen_registro("¿Qué sabes del profesor Distinto?", ruta)
             self.assertEqual(otros_registros, [])
             self.assertNotIn("Docente de Prueba", otra)
             with patch("casos_consulta.REGISTRO_IDENTIFICADO", ruta):
                 salida = ChatSoborno().responder("¿Qué sabes de Docente de Prueba?", gemini=True)
-            self.assertEqual(salida["casos_consultados"], ["T01"])
+            self.assertEqual(salida["casos_consultados"], ["T01", "T02"])
             self.assertEqual(salida["fragmentos"], [])
             self.assertEqual(salida["memoria_turnos"], 0)
 

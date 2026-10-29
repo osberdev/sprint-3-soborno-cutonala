@@ -52,10 +52,14 @@ def cargar_registro_identificado(ruta: Path | None = None) -> list[dict[str, str
     casos = datos.get("casos", [])
     if not isinstance(casos, list):
         raise ValueError(f"El campo 'casos' debe ser una lista en {ruta}")
-    obligatorios = ("id", "persona", "conducta", "procedencia", "fecha_registro", "soporte", "estado")
+    obligatorios = ("id", "persona", "tema", "conducta", "procedencia", "fecha_registro", "soporte", "estado")
     for caso in casos:
         if not isinstance(caso, dict) or any(not isinstance(caso.get(c), str) or not caso[c].strip() for c in obligatorios):
             raise ValueError(f"Entrada incompleta en {ruta}; revisa los campos obligatorios.")
+        if caso["tema"] not in {"soborno", "evaluacion"}:
+            raise ValueError(f"Tema desconocido en {ruta}: {caso['tema']}")
+        if not isinstance(caso.get("alias", []), list) or any(not isinstance(a, str) for a in caso.get("alias", [])):
+            raise ValueError(f"Los alias deben ser una lista de textos en {ruta}.")
     return casos
 
 
@@ -64,18 +68,37 @@ def resumen_registro(mensaje: str = "", ruta_identificados: Path | None = None) 
     anonimos = _relatos_anonimos()
     identificados = cargar_registro_identificado(ruta_identificados)
     consulta = normalizar(mensaje)
-    nombrados = [c for c in identificados if normalizar(c["persona"]) in consulta]
+    nombrados = [
+        c for c in identificados
+        if any(
+            re.search(r"(?<!\w)" + re.escape(normalizar(nombre)) + r"(?!\w)", consulta)
+            for nombre in [c["persona"], *c.get("alias", [])] if nombre.strip()
+        )
+    ]
     general = bool(re.search(r"\b(hay algun|hay profesores|existen profesores|cuales profesores|que profesores)\b", consulta))
-    seleccion = nombrados if nombrados else identificados if general else []
+    if nombrados:
+        pide_evaluacion = bool(re.search(r"\b(amiguismo|favoritismo|evaluacion)", consulta))
+        pide_soborno = bool(re.search(r"\b(soborno|botella|dinero|pago|cobro)", consulta))
+        if pide_evaluacion and not pide_soborno:
+            seleccion = [c for c in nombrados if c["tema"] == "evaluacion"]
+        elif pide_soborno and not pide_evaluacion:
+            seleccion = [c for c in nombrados if c["tema"] == "soborno"]
+        else:
+            seleccion = nombrados
+    else:
+        seleccion = [c for c in identificados if c["tema"] == "soborno"] if general else []
     if seleccion:
-        partes = [
-            f"{c['persona']}: según {c['procedencia']} (registrado el {c['fecha_registro']}), "
-            f"se señaló que {c['conducta']}. Soporte: {c['soporte']}. Estado: {c['estado']}."
-            for c in seleccion
-        ]
+        etiquetas = {"soborno": "posible intercambio por ventaja académica", "evaluacion": "posible trato preferencial"}
+        partes = []
+        for caso in seleccion:
+            partes.append(
+                f"- {caso['persona']} — {etiquetas[caso['tema']]}: {caso['conducta']}. "
+                f"Procedencia: {caso['procedencia']}. Soporte: {caso['soporte']}. "
+                f"Estado: {caso['estado']}."
+            )
         return (
-            "El registro de clase contiene estos señalamientos con su procedencia y estado; "
-            "un testimonio no equivale a una resolución de responsabilidad. " + " ".join(partes),
+            "El registro de clase contiene estos relatos atribuidos; no constituyen una resolución de responsabilidad:\n"
+            + "\n".join(partes),
             seleccion,
         )
     if mensaje and not general:
