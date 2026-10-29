@@ -1,6 +1,7 @@
 """Pruebas locales de procedencia y enrutamiento; no llaman a servicios externos."""
 
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -22,7 +23,34 @@ class PruebasCasosYFaiss(unittest.TestCase):
         respuesta, registros = resumen_registro()
         self.assertEqual([r["id"] for r in registros], ["C01", "C02"])
         self.assertTrue(all("no corroborado" in r["estado"] for r in registros))
-        self.assertIn("no hay un caso nominal y verificable", respuesta)
+        self.assertIn("Los archivos aportados no vinculan ninguno con un nombre", respuesta)
+
+    def test_testimonio_nominal_se_atribuye_sin_darlo_por_probado(self):
+        caso = {
+            "id": "T01", "persona": "Docente de Prueba",
+            "conducta": "habría pedido dinero a cambio de aprobar una materia",
+            "procedencia": "testimonio directo de una estudiante",
+            "fecha_registro": "2026-10-29", "soporte": "relato verbal, sin archivo adjunto",
+            "estado": "señalamiento pendiente de corroboración",
+        }
+        temporal_base = Path(__file__).resolve().parents[2] / "tmp"
+        temporal_base.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=temporal_base) as temporal:
+            ruta = Path(temporal) / "casos_docentes.local.json"
+            ruta.write_text(json.dumps({"casos": [caso]}, ensure_ascii=False), encoding="utf-8")
+            respuesta, registros = resumen_registro("¿Qué sabes de Docente de Prueba?", ruta)
+            self.assertEqual([r["id"] for r in registros], ["T01"])
+            self.assertIn("según testimonio directo", respuesta)
+            self.assertIn("pendiente de corroboración", respuesta)
+            self.assertNotIn("culpable", respuesta)
+            otra, otros_registros = resumen_registro("¿Qué sabes del profesor Distinto?", ruta)
+            self.assertEqual(otros_registros, [])
+            self.assertNotIn("Docente de Prueba", otra)
+            with patch("casos_consulta.REGISTRO_IDENTIFICADO", ruta):
+                salida = ChatSoborno().responder("¿Qué sabes de Docente de Prueba?", gemini=True)
+            self.assertEqual(salida["casos_consultados"], ["T01"])
+            self.assertEqual(salida["fragmentos"], [])
+            self.assertEqual(salida["memoria_turnos"], 0)
 
     def test_antecedente_no_altera_caso_que_se_relata_despues(self):
         chat = ChatSoborno()
@@ -45,7 +73,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
 
         chat = ChatSoborno(buscador=BuscadorCaido())
         antecedente = chat.responder("¿Hay algún profesor acusado de soborno?")
-        self.assertIn("no hay un caso nominal", antecedente["respuesta_chatbot"])
+        self.assertIn("dos relatos estudiantiles", antecedente["respuesta_chatbot"])
         self.assertIsNotNone(antecedente["fallo_faiss"])
         caso = chat.responder("Un docente me pidió dinero para aprobar la materia")
         self.assertEqual(caso["coordenadas"], {"x": 4, "y": 3})
@@ -103,7 +131,9 @@ class PruebasCasosYFaiss(unittest.TestCase):
                 raise RuntimeError("cuota temporal agotada")
             return [[0.01] * DIMENSION for _ in textos]
 
-        with tempfile.TemporaryDirectory() as temporal, \
+        temporal_base = Path(__file__).resolve().parents[2] / "tmp"
+        temporal_base.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=temporal_base) as temporal, \
                 patch("faiss_soborno.INDEX_DIR", Path(temporal)), \
                 patch("faiss_soborno.leer_documentos", return_value=grupos), \
                 patch("faiss_soborno._huella", return_value=huella), \

@@ -35,11 +35,11 @@ Una entrada describe lo que se comunicó al autor, no lo que una autoridad compr
 
 ## Preguntas sobre docentes concretos
 
-En las fuentes reunidas para este módulo no se ha documentado un caso nominal y verificable de soborno académico en CUTonalá. Esto no demuestra que no existan denuncias ni permite confirmar o descartar señalamientos sobre una persona determinada. El chatbot no debe producir nombres a partir de los relatos C01-C03 ni recomendar evitar a un docente por esos comentarios.
+Los relatos C01-C03 describen conductas, pero los archivos aportados no vinculan esas conductas con una persona nombrada. Esto no demuestra que no existan denuncias ni permite confirmar o descartar señalamientos sobre una persona determinada. El chatbot puede responder sobre los relatos disponibles sin ocultarlos; no puede adjudicarlos a un nombre que no figura en su procedencia.
 
 Si alguien pregunta por antecedentes, se puede informar que hay relatos informales anónimos sobre posibles pagos u obsequios vinculados a notas y precisar que no están comprobados. Si la persona relata que un docente le pidió un beneficio, se tratará como un **nuevo relato de primera mano** para orientar sobre conservación de información, opciones universitarias y valoración jurídica; el antecedente informal no se usará como prueba adicional de su versión.
 
-Un caso futuro con nombre requeriría una fuente pública identificable que vincule expresamente a la persona con la conducta, fecha de consulta, estado del procedimiento, delimitación institucional y revisión humana. Una denuncia pública seguiría siendo una denuncia, no una resolución de culpabilidad. Las acusaciones de acoso u otras conductas corresponden a módulos distintos y no deben mezclarse con el registro de soborno.
+Un nuevo relato con nombre puede proceder de un testimonio directo compartido para esta práctica; no requiere una resolución oficial ni publicación externa para registrarse como **señalamiento**. Debe conservar la vinculación explícita entre persona y hecho, quién lo contó y cómo lo conoce, fecha del registro, conducta concreta, nexo con la ventaja académica, soporte disponible y estado de verificación. La respuesta debe atribuir el relato a esa procedencia y distinguirlo de una determinación de responsabilidad. Si la fuente es indirecta, debe decirlo. El archivo de relatos con nombres se conserva fuera del repositorio público actual. Las acusaciones de acoso u otras conductas corresponden a módulos distintos y no deben mezclarse con el registro de soborno.
 
 ## Procedencia y actualización
 

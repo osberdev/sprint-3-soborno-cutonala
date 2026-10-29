@@ -292,12 +292,12 @@ class ChatSoborno:
 
     def responder(self, mensaje: str, gemini: bool = False) -> dict[str, Any]:
         if pregunta_por_antecedentes(mensaje):
-            respuesta, registros = resumen_registro()
+            respuesta, registros = resumen_registro(mensaje)
             # Una pregunta por referencias no es un hecho del caso del estudiante.
             # No se incorpora a la memoria del autómata ni se envía a Gemini.
             fragmentos = []
             fallo_faiss = None
-            if hasattr(self.buscador, "buscar_registro"):
+            if registros and all(r["id"] in {"C01", "C02"} for r in registros) and hasattr(self.buscador, "buscar_registro"):
                 try:
                     fragmentos = self.buscador.buscar_registro()
                 except Exception as error:
@@ -309,7 +309,7 @@ class ChatSoborno:
                 "prioridad": "informativa",
                 "tipo_riesgo": None,
                 "rutas": [],
-                "justificacion": "El registro contiene relatos indirectos sin atribución nominal verificable.",
+                "justificacion": "La respuesta identifica la procedencia y el estado de cada relato consultado.",
                 "respuesta_chatbot": respuesta,
                 "modo": "FAISS + registro de relatos" if fragmentos else "Local + registro de relatos",
                 "fragmentos": fragmentos,
@@ -388,7 +388,7 @@ def mostrar(resultado: dict[str, Any]) -> None:
             visible = texto_visible(f)
             print(f"  · {f['titulo']}: {visible[:230]}{'…' if len(visible) > 230 else ''}")
     if resultado.get("casos_consultados"):
-        print("REGISTRO ANÓNIMO CONSULTADO:", ", ".join(resultado["casos_consultados"]))
+        print("REGISTRO DE RELATOS CONSULTADO:", ", ".join(resultado["casos_consultados"]))
     if resultado["fuentes_consultadas"]:
         print("FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:")
         for clave, url in resultado["fuentes_consultadas"].items():

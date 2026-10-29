@@ -9,6 +9,7 @@ secrets.*
 credentials*.json
 *.key
 faiss_index_soborno/
+conocimientos/casos_docentes.local.json
 .vscode/
 .idea/
 ~$*

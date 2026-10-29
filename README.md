@@ -28,17 +28,26 @@ Mensaje del estudiante
 | `sprint3_soborno.py` | Reglas, estado y memoria de la sesión. |
 | `conocimientos/investigacion_soborno.md` | Texto de la investigación utilizado como base documental. |
 | `conocimientos/primer_contacto_soborno.md` | Ficha institucional que consulta el motor de reglas. |
-| `conocimientos/casos_soborno.md` | Relatos anónimos no corroborados, con procedencia, datos faltantes y límites de uso. |
+| `conocimientos/casos_soborno.md` | Relatos aportados sin nombres, con procedencia, datos faltantes y límites de uso. |
+| `conocimientos/casos_docentes.ejemplo.json` | Estructura vacía para registrar testimonios nominales por separado. |
 | `conocimientos_pdf/` | Dos PDF independientes: investigación de procesos y registro de relatos. |
 | `faiss_soborno.py` | Construcción y consulta opcional del índice FAISS individual desde esos PDF. |
-| `casos_consulta.py` | Respuesta prudente a preguntas por antecedentes de docentes. |
+| `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
 | `pruebas_chatbot.py` | Siete pruebas automatizadas; incluyen un cliente simulado de Gemini. |
-| `pruebas_faiss_y_casos.py` | Ocho pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
+| `pruebas_faiss_y_casos.py` | Nueve pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
 
 El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional basado en los dos PDF individuales. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
+
+### Relatos de clase sobre docentes identificados
+
+Los relatos C01 y C02 de la investigación mencionan intercambios presuntos, pero no enlazan esos hechos con nombres. El ejemplo nominal planteado en clase se refería hipotéticamente a otra conducta; no se agrega como caso de soborno. La ausencia de una resolución oficial no impide registrar un testimonio directo: la respuesta debe indicar quién lo relató, qué conducta se atribuye, qué soporte hay y qué sigue sin comprobarse.
+
+Para un testimonio que sí vincule una persona concreta con una solicitud o entrega por una ventaja académica, crea `conocimientos/casos_docentes.local.json` a partir del archivo de ejemplo. Cada entrada de `casos` requiere `id`, `persona`, `conducta`, `procedencia`, `fecha_registro`, `soporte` y `estado`. `procedencia` debe precisar si es experiencia directa, entrevista, comentario indirecto o documento; `estado` distingue un relato sin corroborar de una denuncia o resolución. La función de consulta lee este archivo sin reconstruir FAISS y presenta los señalamientos como tales. No lo envía a Gemini.
+
+Este repositorio de GitHub es público. El archivo local con nombres está excluido de Git; su inclusión en una base compartida requiere acordar con el equipo qué datos se comparten y con quién. El PDF y el índice FAISS actuales contienen solamente los relatos sin nombres.
 
 ## Relación con la base compartida del profesor
 
@@ -60,7 +69,7 @@ python chatbot_soborno.py --faiss
 
 La indexación requiere una clave y conexión a Gemini, pues genera embeddings de los fragmentos de ambos PDF. Después guarda archivos `.faiss`, metadatos JSON y un manifiesto con huellas de los PDF en `faiss_index_soborno/`. Una consulta en modo `--faiss` también necesita la clave para convertir la pregunta en vector. Si cambian los PDF, reconstruye el índice. El índice generado queda fuera de Git; los PDF y el código sí son reproducibles. Se puede combinar `--faiss --gemini` para redactar con Gemini, o usar sólo `--faiss` para mantener la redacción local.
 
-Hasta que se ejecute `--reindexar-faiss` con una clave válida, el índice individual no existe y el modo `--faiss` no está verificado en una llamada real a la API. El modo local sigue funcionando sin esa dependencia. Si falla la consulta vectorial durante una conversación, se utiliza la búsqueda local y se informa del fallo.
+El modo `--faiss` ya se verificó en Ubuntu con una llamada real a la API y un índice de 107 fragmentos de procesos y 7 de relatos. El índice se conserva sólo en el entorno local de quien lo generó; cada clon debe construirlo con su propia clave. Si falla la consulta vectorial durante una conversación, se utiliza la búsqueda local y se informa del fallo.
 
 La reconstrucción conserva por separado cada PDF ya indexado. Si Gemini devuelve un límite temporal (429), espera el reintento automático; si la ejecución termina sin completar ambos documentos, vuelve a lanzar `--reindexar-faiss` cuando se restablezca la cuota. Los grupos guardados y validados se reutilizan sin volver a generar sus vectores.
 
