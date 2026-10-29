@@ -47,9 +47,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
             "procedencia": "comentario indirecto de clase", "fecha_registro": "2026-10-29",
             "soporte": "sin documento adjunto", "estado": "comentario no corroborado",
         }
-        temporal_base = Path(__file__).resolve().parents[2] / "tmp"
-        temporal_base.mkdir(exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=temporal_base) as temporal:
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as temporal:
             ruta = Path(temporal) / "casos_docentes.local.json"
             ruta.write_text(json.dumps({"casos": [caso, evaluacion]}, ensure_ascii=False), encoding="utf-8")
             respuesta, registros = resumen_registro("¿Qué sabes de Docente Prueba?", ruta)
@@ -149,9 +147,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
                 raise RuntimeError("cuota temporal agotada")
             return [[0.01] * DIMENSION for _ in textos]
 
-        temporal_base = Path(__file__).resolve().parents[2] / "tmp"
-        temporal_base.mkdir(exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=temporal_base) as temporal, \
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as temporal, \
                 patch("faiss_soborno.INDEX_DIR", Path(temporal)), \
                 patch("faiss_soborno.leer_documentos", return_value=grupos), \
                 patch("faiss_soborno._huella", return_value=huella), \
