@@ -21,6 +21,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
 
     def test_antecedente_no_se_toma_como_denuncia_personal(self):
         self.assertTrue(pregunta_por_antecedentes("¿Hay algún profesor acusado de soborno en CUTonalá?"))
+        self.assertTrue(pregunta_por_antecedentes("¿Hay algún profesor señalado por pedir dinero a cambio de calificaciones?"))
         self.assertTrue(pregunta_por_antecedentes("¿Qué sabes del profesor X?"))
         self.assertFalse(pregunta_por_antecedentes("El profesor X me pidió dinero para aprobar"))
         self.assertFalse(pregunta_por_antecedentes("¿Qué sabes de Primer Contacto?"))
@@ -34,7 +35,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
     def test_testimonio_nominal_se_atribuye_sin_darlo_por_probado(self):
         caso = {
             "id": "T01", "persona": "Docente de Prueba",
-            "alias": ["Docente Prueba"], "tema": "soborno",
+            "alias": ["Docente Prueba"], "tema": "soborno", "beneficio": "dinero",
             "conducta": "habría pedido dinero a cambio de aprobar una materia",
             "materia": "Asignatura Ficticia", "ciclo": "2024A",
             "resultado": "el estudiante afirma que aprobó",
@@ -49,9 +50,16 @@ class PruebasCasosYFaiss(unittest.TestCase):
             "procedencia": "comentario indirecto de clase", "fecha_registro": "2026-10-29",
             "soporte": "sin documento adjunto", "estado": "comentario no corroborado",
         }
+        botella = {
+            "id": "T03", "persona": "Docente de Botella",
+            "tema": "soborno", "beneficio": "botella",
+            "conducta": "habría aceptado una botella a cambio de aprobar",
+            "procedencia": "comentario indirecto de clase", "fecha_registro": "2026-10-29",
+            "soporte": "sin documento adjunto", "estado": "comentario no corroborado",
+        }
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as temporal:
             ruta = Path(temporal) / "casos_docentes.local.json"
-            ruta.write_text(json.dumps({"casos": [caso, evaluacion]}, ensure_ascii=False), encoding="utf-8")
+            ruta.write_text(json.dumps({"casos": [caso, evaluacion, botella]}, ensure_ascii=False), encoding="utf-8")
             respuesta, registros = resumen_registro("¿Qué sabes de Docente Prueba?", ruta)
             self.assertEqual([r["id"] for r in registros], ["T01", "T02"])
             self.assertIn("Procedencia: testimonio directo", respuesta)
@@ -60,7 +68,11 @@ class PruebasCasosYFaiss(unittest.TestCase):
             self.assertIn("pendiente de corroboración", respuesta)
             self.assertNotIn("culpable", respuesta)
             _, solo_soborno = resumen_registro("¿Hay algún profesor acusado de soborno?", ruta)
-            self.assertEqual([r["id"] for r in solo_soborno], ["T01"])
+            self.assertEqual([r["id"] for r in solo_soborno], ["T01", "T03"])
+            _, solo_dinero = resumen_registro("¿Hay algún profesor señalado por pedir dinero?", ruta)
+            self.assertEqual([r["id"] for r in solo_dinero], ["T01"])
+            _, solo_botellas = resumen_registro("¿Qué profesores aceptan botellas?", ruta)
+            self.assertEqual([r["id"] for r in solo_botellas], ["T03"])
             _, solo_evaluacion = resumen_registro("¿Qué sabes del amiguismo de Docente de Prueba?", ruta)
             self.assertEqual([r["id"] for r in solo_evaluacion], ["T02"])
             otra, otros_registros = resumen_registro("¿Qué sabes del profesor Distinto?", ruta)

@@ -19,8 +19,8 @@ def pregunta_por_antecedentes(mensaje: str) -> bool:
     if re.search(r"\b(primer contacto|revision de calificacion|que sabes de la norma)\b", texto):
         return False
     patrones = (
-        r"\b(hay|existen|conoces|sabes de)\b.*\b(profesor|profesores|docente|docentes)\b.*\b(acusad|denunciad|soborno|cobr|pag)\w*",
-        r"\b(que|cuales)\b.*\b(profesores|docentes)\b.*\b(acusad|denunciad|soborno)\w*",
+        r"\b(hay|existen|conoces|sabes de)\b.*\b(profesor|profesores|docente|docentes)\b.*\b(acusad|denunciad|senalad|soborno|cobr|pag|pid|solicit|dinero|croquet|botell)\w*",
+        r"\b(que|cuales)\b.*\b(profesores|docentes)\b.*\b(acusad|denunciad|senalad|soborno|cobr|pag|pid|solicit|dinero|croquet|botell)\w*",
         r"\b(que sabes de(?:l| la)?|que opinas de(?:l| la)?|tienes referencias de(?:l| la)?|hay denuncias contra|me conviene agendar con)\b",
         r"\b(profesor|profesora|docente)\b.*\b(tiene denuncias|esta acusado|esta acusada|cobra por|pide dinero por)\b",
     )
@@ -58,6 +58,8 @@ def cargar_registro_identificado(ruta: Path | None = None) -> list[dict[str, str
             raise ValueError(f"Entrada incompleta en {ruta}; revisa los campos obligatorios.")
         if caso["tema"] not in {"soborno", "evaluacion"}:
             raise ValueError(f"Tema desconocido en {ruta}: {caso['tema']}")
+        if "beneficio" in caso and caso["beneficio"] not in {"dinero", "botella", "otro"}:
+            raise ValueError(f"Beneficio desconocido en {ruta}: {caso['beneficio']}")
         if not isinstance(caso.get("alias", []), list) or any(not isinstance(a, str) for a in caso.get("alias", [])):
             raise ValueError(f"Los alias deben ser una lista de textos en {ruta}.")
         if any(clave in caso and not isinstance(caso[clave], str)
@@ -90,6 +92,12 @@ def resumen_registro(mensaje: str = "", ruta_identificados: Path | None = None) 
             seleccion = nombrados
     else:
         seleccion = [c for c in identificados if c["tema"] == "soborno"] if general else []
+        pide_dinero = bool(re.search(r"\b(dinero|pesos|croquet|pag|cobr)", consulta))
+        pide_botella = bool(re.search(r"\b(botell|alcohol|regal|obsequi)", consulta))
+        if pide_dinero and not pide_botella:
+            seleccion = [c for c in seleccion if c.get("beneficio") == "dinero"]
+        elif pide_botella and not pide_dinero:
+            seleccion = [c for c in seleccion if c.get("beneficio") == "botella"]
     if seleccion:
         etiquetas = {"soborno": "posible intercambio por ventaja académica", "evaluacion": "posible trato preferencial"}
         detalles = (("materia", "Materia"), ("ciclo", "Ciclo"),
