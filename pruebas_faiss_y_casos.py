@@ -121,8 +121,9 @@ class PruebasCasosYFaiss(unittest.TestCase):
             def buscar(self, pregunta, estado, limite=3):
                 return [{"titulo": "investigacion_soborno, página 10", "pagina": 10,
                          "archivo": "investigacion_soborno.pdf", "fuentes": [],
+                         # El extracto debe aportar algo que la respuesta no diga ya (D35).
                          "texto": "Investigación documental | CUTonalá | Corte: 8 oct 2026 10 "
-                                  "6 Directorio. Primer Contacto está en el CAE."},
+                                  "6 Directorio. Conviene confirmar el turno por correo antes de acudir."},
                         {"titulo": "investigacion_soborno, página 7", "pagina": 7,
                          "archivo": "investigacion_soborno.pdf", "fuentes": ["S01"],
                          "texto": "Un apartado distinto sobre procedimientos."}]

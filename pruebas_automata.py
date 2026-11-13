@@ -35,6 +35,8 @@ class PruebasConformidad(unittest.TestCase):
         self.assertEqual({e for e, i in ESTADOS.items() if i["terminal"]}, {"q5", "q6"})
         self.assertEqual(ESTADOS["q6"]["nombre"], "Asesoría jurídica")
         self.assertEqual(ESTADOS["q5"]["nombre"], "Autoridad externa")
+        # D36: la fase 3 no repite el nombre de q5.
+        self.assertEqual({ESTADOS[q]["fase"] for q in ("q5", "q6")}, {"3/3 Orientar fuera de la UdeG"})
 
     def test_flecha_inexistente_no_se_inventa(self):
         with self.assertRaises(KeyError):

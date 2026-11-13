@@ -5,7 +5,8 @@ import json
 from pathlib import Path
 import unittest
 
-from chatbot_soborno import Buscador, ChatSoborno, texto_visible
+from chatbot_soborno import Buscador, ChatSoborno, aporta_informacion, texto_visible
+from sprint3_soborno import normalizar
 
 RAIZ = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("segmentar", RAIZ / "herramientas" / "segmentar_investigacion.py")
@@ -70,6 +71,31 @@ class PruebasConocimientos(unittest.TestCase):
             chat.responder(mensaje)
         respuesta = chat.responder("Ya estoy a salvo.")
         self.assertNotIn("Dato recuperado", respuesta["respuesta_chatbot"])
+
+    def test_texto_de_diseno_del_prototipo_no_se_indexa(self):
+        no_indexar = MANIFIESTO["no_indexar"]
+        fragmentos = Buscador().fragmentos
+        self.assertFalse(any(f["apartado"] in no_indexar["apartados"] for f in fragmentos))
+        texto = " ".join(normalizar(f["texto"]) for f in fragmentos)
+        originales = " ".join(normalizar((RAIZ / "conocimientos" / e["archivo"]).read_text(encoding="utf-8"))
+                              for e in MANIFIESTO["archivos"])
+        for frase in no_indexar["frases"]:
+            with self.subTest(frase=frase):
+                self.assertIn(frase, originales)  # la lista no se queda con frases que ya no existen
+                self.assertNotIn(frase, texto)
+
+    def test_lo_que_orienta_se_conserva_junto_al_diseno(self):
+        textos = {f["apartado"]: [] for f in Buscador().fragmentos}
+        for f in Buscador().fragmentos:
+            textos[f["apartado"]].append(f["texto"])
+        self.assertTrue(any(t.startswith("El nivel personal atiende bienestar") for t in textos["8.3"]))
+        self.assertTrue(any("no puede certificarlo como prueba" in t for t in textos["4.2"]))
+        self.assertTrue(any("1. Identificador interno" in t for t in textos["14.1"]))
+
+    def test_extracto_que_repite_la_respuesta_no_se_muestra(self):
+        fragmento = {"texto": "La Unidad de Orientación Educativa ofrece intervención en crisis en el CAE."}
+        self.assertFalse(aporta_informacion(fragmento, "La Unidad de Orientación Educativa ofrece intervención en crisis en el CAE, segundo piso."))
+        self.assertTrue(aporta_informacion(fragmento, "Primer Contacto está en el CAE."))
 
     def test_listas_se_recuperan_completas(self):
         ficha = [f for f in Buscador().fragmentos if f["apartado"] == "14.1" and f["texto"].startswith("1.")]

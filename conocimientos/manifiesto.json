@@ -232,5 +232,22 @@
       ],
       "motivo": "Conclusiones, registro de la búsqueda y referencias; las fuentes están en fuentes.json."
     }
-  ]
+  ],
+  "no_indexar": {
+    "motivo": "Texto que describe el diseño del prototipo y no orienta al estudiante (D35). Los archivos se conservan íntegros; solo se omite al construir los fragmentos de búsqueda. Las frases que informan al estudiante de un límite del chatbot (no certifica pruebas, no negocia, no asigna responsabilidad) sí se indexan.",
+    "apartados": [
+      "8.2"
+    ],
+    "frases": [
+      "para el prototipo se propone",
+      "en una respuesta del prototipo debe",
+      "el sistema puede sugerir",
+      "esta matriz organiza la orientacion del prototipo",
+      "esta ficha es una propuesta academica",
+      "demostracion del prototipo",
+      "si ademas existe una amenaza concreta, debe anadir proteccion",
+      "debe preguntar por criterios y hechos antes de afirmar",
+      "no maximizar la gravedad asignada"
+    ]
+  }
 }

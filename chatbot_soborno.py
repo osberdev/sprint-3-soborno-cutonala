@@ -88,9 +88,18 @@ def filas_de_tabla(bloque: str) -> list[str]:
     return ["; ".join(f"{e}: {c}" for e, c in zip(encabezado, fila) if c) + "." for fila in celdas[1:]]
 
 
+def sin_frases_de_diseno(parrafo: str, frases: list[str]) -> str:
+    """Omite las oraciones que describen el diseño del prototipo (D35); el resto queda literal."""
+    oraciones = re.split(r"(?<=\.)\s+", parrafo)
+    return " ".join(o for o in oraciones if not any(f in normalizar(o) for f in frases))
+
+
 def cargar_fragmentos(manifiesto: dict | None = None) -> list[dict[str, Any]]:
     """Divide los archivos de orientación por apartado y párrafo para recuperar evidencia."""
     manifiesto = manifiesto or MANIFIESTO
+    no_indexar = manifiesto.get("no_indexar", {})
+    apartados_excluidos = set(no_indexar.get("apartados", []))
+    frases_de_diseno = no_indexar.get("frases", [])
     fragmentos: list[dict[str, Any]] = []
     for entrada in manifiesto["archivos"]:
         if entrada["uso"] != "orientacion":
@@ -99,6 +108,8 @@ def cargar_fragmentos(manifiesto: dict | None = None) -> list[dict[str, Any]]:
         for seccion in re.split(r"^## ", texto, flags=re.M)[1:]:
             titulo, _, cuerpo = seccion.partition("\n")
             titulo = titulo.strip()
+            if titulo.split()[0] in apartados_excluidos:
+                continue
             bloques: list[str] = []
             for bloque in re.split(r"\n\s*\n", cuerpo.strip()):
                 # Los elementos de una lista se recuperan juntos: un punto suelto («7. Información…») no orienta.
@@ -110,7 +121,7 @@ def cargar_fragmentos(manifiesto: dict | None = None) -> list[dict[str, Any]]:
             for bloque in bloques:
                 partes = filas_de_tabla(bloque) if bloque.lstrip().startswith("|") else [bloque]
                 for parrafo in partes:
-                    parrafo = re.sub(r"\s+", " ", parrafo).strip()
+                    parrafo = sin_frases_de_diseno(re.sub(r"\s+", " ", parrafo).strip(), frases_de_diseno)
                     if len(parrafo) < 80 or parrafo.startswith("<!--"):
                         continue
                     ids = list(dict.fromkeys(re.findall(r"S\d{2}", parrafo)))
@@ -123,6 +134,24 @@ def cargar_fragmentos(manifiesto: dict | None = None) -> list[dict[str, Any]]:
                         "estados": list(entrada["estados"]),
                     })
     return fragmentos
+
+
+def extracto_de(fragmento: dict[str, Any]) -> str:
+    """Las dos primeras oraciones del fragmento, como se muestran en «Dato recuperado»."""
+    frases = re.split(r"(?<=[.!?])\s+", texto_visible(fragmento))
+    extracto = " ".join(frases[:2]).replace("**", "")
+    if len(extracto) > 420:
+        extracto = extracto[:420].rsplit(" ", 1)[0] + "…"
+    return extracto
+
+
+def aporta_informacion(fragmento: dict[str, Any], respuesta: str, umbral: float = 0.5) -> bool:
+    """El extracto aporta si al menos la mitad de sus palabras de contenido no están en la respuesta."""
+    propias = {p for p in palabras(extracto_de(fragmento)) if len(p) >= 5}
+    if not propias:
+        return False
+    ya_dichas = set(palabras(respuesta))
+    return len(propias - ya_dichas) / len(propias) >= umbral
 
 
 class Buscador:
@@ -366,7 +395,8 @@ class ChatSoborno:
         fallo_faiss = None
         fragmentos: list[dict[str, Any]] = []
         # Un turno sin regla ni pregunta informativa no aporta nada que buscar.
-        if estado["reglas"] or estado.get("consulta"):
+        # Retomar el caso tras Seguridad (B17) tampoco: la respuesta ya es completa.
+        if (estado["reglas"] or estado.get("consulta")) and "B17" not in estado["reglas"]:
             try:
                 fragmentos = self.buscador.buscar(mensaje, estado)
             except Exception as error:
@@ -381,16 +411,15 @@ class ChatSoborno:
         # El extracto se muestra al llegar a una etapa o al responder una pregunta informativa,
         # y nunca dos veces el mismo en la sesión (D25). Retomar el caso tras Seguridad (B17)
         # no es una etapa nueva: no añade extracto (D33).
-        nuevos = [f for f in fragmentos if f["texto"] not in self.extractos_mostrados]
+        # Tampoco se muestra un extracto que repite lo que la respuesta ya dice.
+        nuevos = [f for f in fragmentos if f["texto"] not in self.extractos_mostrados
+                  and aporta_informacion(f, respuesta)]
         etapa = (estado["estado"] not in ("q0", "q1") and "B17" not in estado["reglas"]
                  and any(r not in ("B1", "B2") for r in estado["reglas"]))
         if nuevos and (etapa or estado.get("consulta")):
             primero = nuevos[0]
             self.extractos_mostrados.add(primero["texto"])
-            frases = re.split(r"(?<=[.!?])\s+", texto_visible(primero))
-            extracto = " ".join(frases[:2]).replace("**", "")
-            if len(extracto) > 420:
-                extracto = extracto[:420].rsplit(" ", 1)[0] + "…"
+            extracto = extracto_de(primero)
             citas = ", ".join(primero["fuentes"])
             respuesta += f"\nDato recuperado de «{primero['titulo']}»: {extracto}"
             if citas:
