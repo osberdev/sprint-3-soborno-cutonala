@@ -67,12 +67,15 @@ FAQ: dict[str, tuple[str, tuple[str, ...]]] = {
 
 
 def intencion_pregunta(texto: str) -> str | None:
-    t = normalizar(texto)
+    # Formas incompletas o con errores de «Primer Contacto»: «primer co», «primer contato»,
+    # «contacto uno», «primercontacto» (D45).
+    t = re.sub(r"\bprimer\s*co\w*|\bcontacto\s+(uno|1)\b", "primer contacto", normalizar(texto))
     if "primer contacto" in t and any(x in t for x in ("soborno", "relacion", "caso", "corresponde")):
         return "relacion"
     if any(x in t for x in ("encargad", "responsable", "quien atiende", "quien es")) and "primer contacto" in t:
         return "encargado"
-    if any(x in t for x in ("donde", "ubicacion", "encuentro", "direccion", "horario")) and any(x in t for x in ("primer contacto", "oficina", "cae")):
+    if any(x in t for x in ("donde", "ubicacion", "encuentro", "direccion", "horario", "atiend", "despach",
+                            "abren", "dias")) and any(x in t for x in ("primer contacto", "oficina", "cae")):
         return "ubicacion"
     if any(x in t for x in ("consiste", "hace el programa", "sirve primer", "funciones del programa")):
         return "programa"

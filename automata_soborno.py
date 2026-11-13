@@ -300,6 +300,8 @@ def extraer_hechos(mensaje: str, adicionales: set[str] | frozenset[str] = frozen
 
 SIN_DATO = ("No tengo información oficial sobre eso en la investigación. Puedes confirmarlo con Primer "
             "Contacto: primercontacto@cutonala.udg.mx.")
+SIN_DATO_OTRA_VEZ = ("Tampoco encuentro ese dato en la investigación; Primer Contacto puede confirmarlo "
+                     "en primercontacto@cutonala.udg.mx.")
 INTERROGATIVOS = r"^(que|quien|quienes|donde|cuando|como|cual|cuales|cuanto|cuanta|cuantos|cuantas|por que|para que|hay|puedo|se puede|atienden|existe|tienen)\b"
 
 
@@ -749,7 +751,10 @@ class SesionAutomata:
             partes.append(self.texto_pregunta())
         texto = " ".join(partes)
         if texto == self._ultima and not reglas:
-            if self.pendiente:
+            if self.sin_dato:
+                # Dos preguntas seguidas sin dato reciben una respuesta honesta, no «Sigo atento» (D46).
+                texto = SIN_DATO_OTRA_VEZ + (" " + self.texto_pregunta() if self.pendiente else "")
+            elif self.pendiente:
                 texto = "Sigo esperando tu respuesta: " + self.texto_pregunta()
             elif e in ("q0", "q1"):
                 texto = "Sigo atento. Cuando quieras, cuéntame qué pasó o pregúntame por Primer Contacto."

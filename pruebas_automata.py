@@ -245,6 +245,22 @@ class PruebasPreguntaSinDato(unittest.TestCase):
         r = sesion.procesar("sí")
         self.assertEqual(r["estado"], "q5")
 
+    def test_formas_incompletas_de_primer_contacto_son_pregunta_informativa(self):
+        # Prueba del 13 nov 2026 (D45): antes recibían «No tengo información oficial».
+        from sprint3_soborno import intencion_pregunta
+        for texto in ("donde esta primer co", "donde encuentro contacto uno", "dónde está primer contato",
+                      "en primer contacto, atienden los sabados?"):
+            with self.subTest(texto=texto):
+                self.assertEqual(intencion_pregunta(texto), "ubicacion")
+        self.assertIsNone(intencion_pregunta("despachan los sabados?"))
+
+    def test_dos_preguntas_sin_dato_no_terminan_en_sigo_atento(self):
+        # D46: la segunda respuesta igual se sustituía por «Sigo esperando tu respuesta».
+        sesion, _ = conversar("Un docente me pidió dinero a cambio de aprobar la materia.", "despachan los sabados?")
+        r = sesion.procesar("despachan los domingos?")
+        self.assertTrue(r["respuesta"].startswith("Tampoco encuentro ese dato"))
+        self.assertEqual(r["pendiente"], "B14")
+
     def test_una_pregunta_con_hechos_sigue_siendo_un_relato(self):
         _, r = conversar("¿Qué hago si un profe me pidió dinero para pasar?")
         self.assertEqual(r["estado"], "q3")

@@ -20,7 +20,7 @@ from typing import Any
 
 from casos_consulta import resumen_registro
 from automata_soborno import REGLAS, SesionAutomata
-from gemini_soborno import ExtractorGemini, redactar
+from gemini_soborno import ExtractorGemini, describir_fallo, redactar
 from sprint3_soborno import intencion_pregunta, normalizar
 
 
@@ -353,8 +353,8 @@ class ChatSoborno:
             if citas:
                 respuesta += f" [{citas}]"
         orientacion_base = respuesta
-        if pregunta:
-            respuesta += f"\n{pregunta}"
+        # Sin texto previo, la pregunta va en la misma línea que «RESPUESTA:» (D44).
+        respuesta = "\n".join(parte for parte in (respuesta.strip(), pregunta) if parte)
         fallo_gemini = None
         no_fundamentado: list[str] = []
         # Gemini redacta cuando el turno tiene una regla o una pregunta informativa; un turno
@@ -367,7 +367,7 @@ class ChatSoborno:
                 if not no_fundamentado:
                     respuesta = redaccion + (f"\n{pregunta}" if pregunta else "")
             except Exception as error:
-                fallo_gemini = str(error) or type(error).__name__
+                fallo_gemini = describir_fallo(error)
         fragmentos_para_enlaces = fragmentos
         if intencion_pregunta(mensaje) and fragmentos and fragmentos[0].get("pagina"):
             principal = fragmentos[0]

@@ -26,7 +26,8 @@ from sprint3_soborno import normalizar
 
 MODELO_POR_DEFECTO = "gemini-3.5-flash-lite"
 TEMPERATURA = 0.2          # la misma del ejemplo del profesor (app.py)
-TIEMPO_LIMITE = 12         # segundos; si se agota, se muestra la respuesta local
+TIEMPO_LIMITE = 20         # segundos; si se agota, se muestra la respuesta local. Con 12 s hubo
+                           # dos tiempos agotados en la prueba real del 13 nov 2026 (D43)
 MAXIMO_PALABRAS = 120
 
 
@@ -63,6 +64,16 @@ def generar(entrada: str, instruccion: str, esquema: dict[str, Any] | None = Non
     if not texto:
         raise RuntimeError("Gemini respondió sin texto.")
     return texto
+
+
+def describir_fallo(error: Exception) -> str:
+    """Mensaje breve en español para un fallo del servicio; el modo local sigue disponible."""
+    texto = str(error)
+    if "timed out" in texto.lower() or "timeout" in type(error).__name__.lower():
+        return f"sin respuesta en {TIEMPO_LIMITE} s"
+    if getattr(error, "code", None) == 429 or "429" in texto[:40]:
+        return "cuota temporal agotada"
+    return texto or type(error).__name__
 
 
 # ---------------------------------------------------------------------------
@@ -296,8 +307,11 @@ class ExtractorGemini:
         self.descartados: list[dict[str, Any]] = []
 
     def __call__(self, mensaje: str) -> set[str]:
-        aceptados, self.descartados = interpretar_extraccion(
-            generar("MENSAJE DEL ESTUDIANTE\n" + mensaje, INSTRUCCION_EXTRACCION, ESQUEMA_HECHOS), mensaje)
+        try:
+            salida = generar("MENSAJE DEL ESTUDIANTE\n" + mensaje, INSTRUCCION_EXTRACCION, ESQUEMA_HECHOS)
+        except Exception as error:
+            raise RuntimeError(describir_fallo(error)) from error
+        aceptados, self.descartados = interpretar_extraccion(salida, mensaje)
         return aceptados
 
 

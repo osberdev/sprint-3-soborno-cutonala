@@ -14,7 +14,7 @@ from sprint3_soborno import normalizar
 from automata_soborno import ORIENTACION, SesionAutomata
 from chatbot_soborno import ChatSoborno
 from escenarios_aceptacion import ESCENARIOS
-from gemini_soborno import (ECO_DE_INSTRUCCIONES, ESQUEMA_HECHOS, INSTRUCCION_REDACCION, MODELO_POR_DEFECTO, ExtractorGemini,
+from gemini_soborno import (ECO_DE_INSTRUCCIONES, ESQUEMA_HECHOS, TIEMPO_LIMITE, describir_fallo, INSTRUCCION_REDACCION, MODELO_POR_DEFECTO, ExtractorGemini,
                             interpretar_extraccion, limpiar_redaccion, verificar_fundamento)
 
 RAIZ = Path(__file__).resolve().parent
@@ -69,7 +69,7 @@ class PruebasConfiguracion(unittest.TestCase):
             gemini_soborno.generar("entrada", "instrucción", ESQUEMA_HECHOS)
         peticion = llamadas[0]
         self.assertEqual(peticion["model"], MODELO_POR_DEFECTO)
-        self.assertEqual((peticion["timeout"], peticion["store"]), (12, False))
+        self.assertEqual((peticion["timeout"], peticion["store"]), (TIEMPO_LIMITE, False))
         self.assertEqual(peticion["generation_config"], {"temperature": 0.2})
         self.assertEqual(peticion["system_instruction"], "instrucción")
         self.assertEqual(peticion["response_format"]["mime_type"], "application/json")
@@ -174,6 +174,19 @@ class PruebasRedaccion(unittest.TestCase):
         self.assertTrue(r["modo"].startswith("Local"))
         self.assertTrue(r["respuesta_chatbot"].startswith("No tengo información oficial"))
 
+    def test_fallos_del_servicio_se_describen_en_espanol(self):
+        # D43: el mensaje del SDK aparecía en inglés.
+        error = Exception("Request timed out. This is a client-side timeout. You can increase the timeout…")
+        self.assertEqual(describir_fallo(error), f"sin respuesta en {TIEMPO_LIMITE} s")
+        self.assertEqual(TIEMPO_LIMITE, 20)
+
+    def test_pregunta_sin_texto_previo_va_en_la_primera_linea(self):
+        # D44: «RESPUESTA:» quedaba vacía y la reformulación de C1 pasaba a la línea siguiente.
+        chat = ChatSoborno()
+        chat.responder("Un docente me insinuó que con un favor podría aprobar la materia.")
+        r = chat.responder("mmm")
+        self.assertTrue(r["respuesta_chatbot"].startswith("Te lo pregunto de otra forma"))
+
     def test_fallo_de_gemini_muestra_la_respuesta_local(self):
         def falla(*_):
             raise RuntimeError("cuota agotada")
@@ -218,6 +231,13 @@ class PruebasExtractor(unittest.TestCase):
                 for mensaje in mensajes:
                     resultado = sesion.procesar(mensaje)
                 self.assertEqual(resultado["estado"], estado)
+
+    def test_fallo_del_extractor_se_describe_en_espanol(self):
+        def falla(*_):
+            raise TimeoutError("Request timed out.")
+        with patch("gemini_soborno.generar", falla):
+            r = SesionAutomata(extractor=ExtractorGemini()).procesar(RELATO)
+        self.assertEqual(r["fallo_extractor"], f"sin respuesta en {TIEMPO_LIMITE} s")
 
     def test_fallo_del_extractor_sigue_con_reglas_locales(self):
         def falla(_):
