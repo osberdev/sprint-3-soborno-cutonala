@@ -10,6 +10,9 @@ credentials*.json
 *.key
 faiss_index_soborno/
 conocimientos/casos_docentes.local.json
+# Caso guardado entre ejecuciones (solo estado y ficha)
+caso_guardado.local.json
+caso_guardado.local.tmp
 .vscode/
 .idea/
 ~$*

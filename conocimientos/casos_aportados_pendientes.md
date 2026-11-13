@@ -53,4 +53,4 @@ No se utilizó todavía para concluir prohibiciones específicas sobre regalos: 
 
 ## Pregunta anterior: descartada por cambio de alcance
 
-Esta nota conserva el contexto de los relatos sin desarrollar una indagación individual. La versión preparada para el chatbot está en `casos_soborno.md` y mantiene los relatos anónimos y no corroborados.
+Esta nota conserva el contexto de los relatos sin desarrollar una indagación individual. La versión preparada para el chatbot está en `relatos_campus.md` y mantiene los relatos anónimos y no corroborados.

@@ -44,3 +44,13 @@ Un nuevo relato con nombre puede proceder de un testimonio directo compartido pa
 ## Procedencia y actualización
 
 Este registro deriva de `conocimientos/casos_aportados_pendientes.md` (8 de octubre de 2026) y de los antecedentes del informe individual. No agrega entrevistas, documentos probatorios ni casos nuevos. Debe revisarse antes de incorporar información adicional a una base compartida del equipo.
+
+<!-- inicio de bloque generado desde la investigación -->
+
+## 10.4 Qué puede afirmarse sobre los relatos del campus
+
+Las fuentes revisadas no permiten presentar los relatos específicos compartidos por el autor como casos comprobados de soborno en CUTonalá. La investigación sí puede afirmar que esos relatos fueron aportados como motivación, que la normativa contempla conductas compatibles con algunos de sus patrones y que existen canales institucionales para solicitar orientación y comunicar hechos.
+
+La falta de una resolución localizada no demuestra inexistencia del comportamiento ni encubrimiento. Puede haber información no pública, no indexada o no identificada por esta revisión. Para ampliar la evidencia sería necesario recopilar testimonios con metodología y consentimiento, consultar datos agregados y, cuando corresponda, obtener documentos públicos de resoluciones. No se requiere exponer nombres en una presentación de clase para explicar las conductas y los problemas de acceso.
+
+<!-- fin de bloque generado -->

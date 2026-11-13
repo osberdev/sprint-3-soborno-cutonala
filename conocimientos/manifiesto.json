@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "fuente": "Investigacion_soborno_CUTonala.docx",
+  "descripcion": "Asignación de los apartados de la investigación a archivos de conocimiento y a los estados del autómata que los consultan. Los archivos marcados como generados se producen con herramientas/segmentar_investigacion.py y no se editan a mano.",
+  "archivos": [
+    {
+      "archivo": "antecedentes_y_barreras.md",
+      "titulo": "Antecedentes y barreras identificadas",
+      "apartados": [
+        "2",
+        "2.1",
+        "2.2",
+        "2.3"
+      ],
+      "estados": [
+        "q1"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "conceptos_soborno.md",
+      "titulo": "Conceptos y diferencias relevantes",
+      "apartados": [
+        "3",
+        "3.1",
+        "3.2",
+        "3.3"
+      ],
+      "estados": [
+        "q1",
+        "otro_tema"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "nivel_personal.md",
+      "titulo": "Nivel personal",
+      "apartados": [
+        "4",
+        "4.1",
+        "4.2",
+        "4.3"
+      ],
+      "estados": [
+        "q1",
+        "q2",
+        "qS"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "primer_contacto.md",
+      "titulo": "Primer Contacto y medidas de protección",
+      "apartados": [
+        "5.2",
+        "5.5"
+      ],
+      "estados": [
+        "q3",
+        "qS"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "denuncia_universitaria.md",
+      "titulo": "Denuncia universitaria",
+      "apartados": [
+        "5",
+        "5.1",
+        "5.3",
+        "5.4",
+        "5.7"
+      ],
+      "estados": [
+        "q3"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "revision_evaluacion.md",
+      "titulo": "Revisión de la propia evaluación y plazos",
+      "apartados": [
+        "5.6",
+        "14.3"
+      ],
+      "estados": [
+        "q4"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "directorio_cutonala.md",
+      "titulo": "Directorio de CUTonalá",
+      "apartados": [
+        "6",
+        "6.1",
+        "6.2"
+      ],
+      "estados": [
+        "B1",
+        "q2",
+        "q3",
+        "q4"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "directorio_externo.md",
+      "titulo": "Instancias centrales y externas",
+      "apartados": [
+        "6.3"
+      ],
+      "estados": [
+        "q5",
+        "q6"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "nivel_legal.md",
+      "titulo": "Nivel legal",
+      "apartados": [
+        "7",
+        "7.1",
+        "7.2",
+        "7.3",
+        "7.4",
+        "7.6"
+      ],
+      "estados": [
+        "q5"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "asesoria_y_participacion.md",
+      "titulo": "Protección, participación y seguimiento",
+      "apartados": [
+        "7.5"
+      ],
+      "estados": [
+        "q6",
+        "q5"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "canalizacion.md",
+      "titulo": "Importancia y decisión de canalización",
+      "apartados": [
+        "8",
+        "8.1",
+        "8.2",
+        "8.3"
+      ],
+      "estados": [
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "fichas_y_preguntas.md",
+      "titulo": "Ficha de orientación y preguntas ante una oficina",
+      "apartados": [
+        "14",
+        "14.1",
+        "14.2"
+      ],
+      "estados": [
+        "q1",
+        "q3"
+      ],
+      "uso": "orientacion"
+    },
+    {
+      "archivo": "relatos_campus.md",
+      "titulo": "Registro de relatos del campus",
+      "apartados": [
+        "10.4"
+      ],
+      "estados": [
+        "B2"
+      ],
+      "uso": "antecedentes",
+      "bloque_generado": true
+    }
+  ],
+  "excluidos": [
+    {
+      "apartados": [
+        "0",
+        "1"
+      ],
+      "motivo": "Portada, resumen y metodología: describen la investigación, no orientan."
+    },
+    {
+      "apartados": [
+        "9"
+      ],
+      "motivo": "Escenarios ficticios: se usan como pruebas de aceptación para no presentarlos como hechos."
+    },
+    {
+      "apartados": [
+        "10",
+        "10.1",
+        "10.2",
+        "10.3"
+      ],
+      "motivo": "Evidencia pública de otros casos e informes; solo 10.4 se usa, en el registro de relatos."
+    },
+    {
+      "apartados": [
+        "11"
+      ],
+      "motivo": "Evaluación crítica de los sitios web; la discrepancia de contactos ya consta en 6.2."
+    },
+    {
+      "apartados": [
+        "12"
+      ],
+      "motivo": "Diseño del prototipo: no debe mostrarse al estudiante (defecto D04)."
+    },
+    {
+      "apartados": [
+        "13",
+        "14.4",
+        "15"
+      ],
+      "motivo": "Conclusiones, registro de la búsqueda y referencias; las fuentes están en fuentes.json."
+    }
+  ],
+  "no_indexar": {
+    "motivo": "Texto que describe el diseño del prototipo y no orienta al estudiante (D35). Los archivos se conservan íntegros; solo se omite al construir los fragmentos de búsqueda. Las frases que informan al estudiante de un límite del chatbot (no certifica pruebas, no negocia, no asigna responsabilidad) sí se indexan.",
+    "apartados": [
+      "8.2"
+    ],
+    "frases": [
+      "para el prototipo se propone",
+      "en una respuesta del prototipo debe",
+      "el sistema puede sugerir",
+      "esta matriz organiza la orientacion del prototipo",
+      "esta ficha es una propuesta academica",
+      "demostracion del prototipo",
+      "si ademas existe una amenaza concreta, debe anadir proteccion",
+      "debe preguntar por criterios y hechos antes de afirmar",
+      "no maximizar la gravedad asignada"
+    ]
+  }
+}
