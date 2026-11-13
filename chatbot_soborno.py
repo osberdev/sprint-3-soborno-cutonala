@@ -144,8 +144,11 @@ class Buscador:
             consulta += " amenaza represalia medidas proteccion"
         buscadas = set(palabras(consulta))
         total = len(self.fragmentos)
+        permitidos = estados_de_busqueda(estado) if not intencion else None
         resultados = []
         for fragmento, conteo in zip(self.fragmentos, self.conteos):
+            if permitidos and not permitidos & set(fragmento.get("estados", [])):
+                continue
             longitud = sum(conteo.values())
             titulo = set(palabras(fragmento["titulo"]))
             puntuacion = 0.0
@@ -205,6 +208,19 @@ class Buscador:
             if len(elegidos) >= limite:
                 break
         return elegidos[:limite]
+
+
+DESTINO_PREGUNTA = {"B10": "q3", "B14": "q5", "B15": "q6", "B16": "qS"}
+
+
+def estados_de_busqueda(estado: dict[str, Any]) -> set[str]:
+    """Estados cuyos archivos se consultan: el actual y el que abriría la pregunta pendiente."""
+    actuales = {estado.get("estado")} - {None, "q0"}
+    if estado.get("pendiente") in DESTINO_PREGUNTA:
+        actuales.add(DESTINO_PREGUNTA[estado["pendiente"]])
+    if estado.get("salida") == "otro_tema":
+        actuales.add("otro_tema")
+    return actuales
 
 
 def ids_y_enlaces(fragmentos: list[dict[str, Any]], estado: dict[str, Any]) -> dict[str, str]:

@@ -116,5 +116,50 @@ class PruebasCasosLimite(unittest.TestCase):
         self.assertIn("denuncia universitaria", " ".join(r["vias"]))
 
 
+
+class PruebasRegresionPruebaManual(unittest.TestCase):
+    """Conversación de la prueba manual del 12 de noviembre de 2026 (iteración 2)."""
+
+    def test_aclaracion_con_errores_de_escritura_avanza(self):
+        sesion, r = conversar("Ya pagué la inscripción y quiero saber mi calificación.")
+        self.assertEqual((r["estado"], r["pendiente"]), ("q1", "C1"))
+        r = sesion.procesar("condiciondo por una calaificacion")
+        self.assertEqual((r["estado"], r["reglas"], r["pendiente"]), ("q3", ["B7"], "B15"))
+        r = sesion.procesar("Si")
+        self.assertEqual((r["estado"], r["reglas"]), ("q6", ["B15"]))
+
+    def test_si_responde_la_aclaracion(self):
+        _, r = conversar("Ya pagué la inscripción y quiero saber mi calificación.", "Si")
+        self.assertEqual((r["estado"], r["reglas"]), ("q3", ["B7"]))
+
+    def test_no_cierra_la_aclaracion_sin_soborno(self):
+        sesion, r = conversar("Ya pagué la inscripción y quiero saber mi calificación.", "no")
+        self.assertEqual((r["estado"], r["pendiente"]), ("q1", None))
+        self.assertIn("no lo trato como soborno", r["respuesta"])
+        r = sesion.procesar("ok")
+        self.assertNotIn("no lo trato como soborno", r["respuesta"])
+
+    def test_no_entiendo_no_es_un_no(self):
+        sesion, r = conversar("Ya pagué la inscripción y quiero saber mi calificación.", "no entiendo")
+        self.assertEqual(r["pendiente"], "C1")
+        self.assertIn("de otra forma", r["respuesta"])
+        r = sesion.procesar("sí")
+        self.assertEqual(r["estado"], "q3")
+
+    def test_no_repite_la_misma_pregunta_ni_insiste(self):
+        sesion, primera = conversar("Ya pagué la inscripción y quiero saber mi calificación.")
+        segunda = sesion.procesar("mmm")
+        self.assertNotEqual(primera["respuesta"], segunda["respuesta"])
+        tercera = sesion.procesar("mmm")
+        self.assertIsNone(tercera["pendiente"])
+        self.assertEqual(tercera["ficha"]["decisiones"]["C1"], "desconocido")
+
+    def test_un_no_se_en_primer_contacto_no_repite_la_orientacion(self):
+        sesion, r = conversar("Un docente me pidió dinero a cambio de aprobar la materia.")
+        orientacion = r["respuesta"].split("¿")[0].strip()
+        r = sesion.procesar("no sé")
+        self.assertNotIn(orientacion, r["respuesta"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

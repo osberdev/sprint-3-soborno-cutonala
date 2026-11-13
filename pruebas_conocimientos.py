@@ -46,6 +46,15 @@ class PruebasConocimientos(unittest.TestCase):
         self.assertTrue(respuesta["fragmentos"])
         self.assertFalse(any(f["apartado"].startswith("12") for f in respuesta["fragmentos"]))
 
+    def test_cada_estado_recupera_de_sus_archivos(self):
+        chat = ChatSoborno()
+        aclaracion = chat.responder("Ya pagué la inscripción y quiero saber mi calificación.")
+        self.assertTrue(all("q1" in f["estados"] for f in aclaracion["fragmentos"]))
+        respuesta = chat.responder("Si")
+        # q3 con la pregunta B15 pendiente: archivos de q3 y de q6.
+        self.assertTrue(all({"q3", "q6"} & set(f["estados"]) for f in respuesta["fragmentos"]))
+        self.assertFalse(any(f["apartado"] in ("7.1", "7.6") for f in respuesta["fragmentos"]))
+
     def test_relatos_del_campus_no_se_indexan_como_orientacion(self):
         self.assertFalse(any(f["archivo"] == "relatos_campus.md" for f in Buscador().fragmentos))
 

@@ -73,3 +73,13 @@
 | 2 · Autómata | D01, D02, D03, D06, D11–D18; D10 en parte (se eliminó la función duplicada de Gemini) | `escenarios_aceptacion.py` (20 escenarios) y `pruebas_automata.py` (conformidad con el diagrama y casos límite) |
 
 Los defectos G01–G06 del diagrama no se corrigen en la imagen: la implementación sigue el autómata aprobado (q6 Asesoría jurídica, q5 Autoridad externa, aceptación en q2–q6, lazo B8 en q3, B10 con (1,0)).
+
+## E. Defectos encontrados en la prueba manual de la iteración 2
+
+| ID | Defecto | Evidencia | Corrección | Comprobación |
+|---|---|---|---|---|
+| D20 | La aclaración de q1 («¿estuvo condicionado…?») era texto libre: un «Si» no se interpretaba y el bot repetía la misma pregunta | Prueba manual, 12 nov 2026: «Ya pagué la inscripción…», «condiciondo por una calaificacion», «Si» | Aclaración C1 como pregunta de sí o no dentro de q1 (lazo B4): un «sí» confirma B7; un «no» la cierra sin clasificar soborno | `PruebasRegresionPruebaManual` en `pruebas_automata.py` |
+| D21 | Los errores de escritura impedían reconocer el condicionamiento | Mismo turno | Corrección de palabras clave con `difflib` y patrón «condicionado a/por una calificación» | Mismo grupo de pruebas |
+| D22 | La misma pregunta y la orientación del estado se repetían en cada turno sin información nueva | Mismo turno; también en q3 con «no sé» | Una reformulación y después se deja de preguntar; la orientación del estado solo se muestra al llegar a él | `test_no_repite_la_misma_pregunta_ni_insiste`, `test_un_no_se_en_primer_contacto_no_repite_la_orientacion` |
+| D23 | «no entiendo» se leía como «no» | Prueba local posterior | Se interpreta como duda y se reformula la pregunta | `test_no_entiendo_no_es_un_no` |
+| D24 | En q1 se recuperaban apartados ajenos al estado (7.1, 7.6) | Prueba manual | Recuperación por estado según el manifiesto: archivos del estado actual y del estado al que lleva la pregunta pendiente | `test_cada_estado_recupera_de_sus_archivos` |

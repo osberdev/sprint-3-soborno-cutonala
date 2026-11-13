@@ -12,6 +12,7 @@ respuesta local; el chat puede pedir a Gemini que la redacte sin cambiar la ruta
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import difflib
 import re
 from typing import Any
 
@@ -80,6 +81,12 @@ PREGUNTAS = {
     "B15": "¿Quieres orientación sobre asesoría jurídica para tu propia situación antes de declarar? Responde sí o no.",
     "B16": "¿Estás en peligro en este momento? Responde sí o no.",
     "B17": "¿Estás en un lugar seguro ahora? Responde sí o no.",
+    # Aclaración dentro de q1 (lazo B4): no es una flecha nueva; un «sí» confirma B7.
+    "C1": "¿Ese pago o beneficio estuvo condicionado a una calificación o a otra ventaja académica? Responde sí o no.",
+}
+REFORMULACION = {
+    "C1": "Te lo pregunto de otra forma: ¿se pidió u ofreció algo a cambio de una calificación, de aprobar o de otra "
+          "ventaja académica? Responde sí o no.",
 }
 REPREGUNTA = "Para continuar necesito un sí o un no. Si prefieres no decidir ahora, también está bien: dime «no»."
 
@@ -140,7 +147,9 @@ BENEFICIO = (r"\b(dinero|pesos?|\$\s?\d+|pag(o|os|ar|ue|ado|aba|aste|aron|ara|ue
 VENTAJA = (r"\b(aprob\w*|reprob\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|cien|100|puntos?|materia)\b")
 NEXO = (r"(a cambio de|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
         r"|si no (le )?(doy|pago|entrego|deposito)|quienes (den|aporten|paguen|entreguen)|tendran (100|cien)"
-        r"|recibir\w* (puntos|cien|100)|puede cambiar (mi|la|las) (nota|calificacion)|conoce a alguien que puede)")
+        r"|recibir\w* (puntos|cien|100)|puede cambiar (mi|la|las) (nota|calificacion)|conoce a alguien que puede"
+        r"|condicion\w* (a|por|con) (una |la |mi |el )?(calificacion|nota|aprobar|pasar|acreditar)"
+        r"|(solo |nada mas )?si (le )?(pagaba|daba|entregaba|pagabamos|dabamos))")
 EXIGENCIA = (r"\b(me pidio|me pide|me piden|nos pidio|nos pide|me exig\w*|me cobr\w*|me solicit\w*|dijo que quienes"
              r"|dice que quienes|me dijo que .{0,40}si no)")
 OFRECIMIENTO = r"\b(le ofreci|ofreci|le propuse|le di|le entregue|le pague|le regale|le deposite|le transferi|le lleve|acepte pagar)\b"
@@ -178,9 +187,29 @@ MODULO_POR_TEMA = {
 }
 
 
+VOCABULARIO = (
+    "calificacion calificaciones condicionado condicionada condiciono aprobar acreditar materia profesor profesora "
+    "docente dinero amenazo amenaza reprobar reprobarme inscripcion transferencia botella regalo insinuo colecta "
+    "voluntaria favoritismo hostiga golpearme represalia publicaron injusta exigio ofreci entregue pague"
+).split()
+
+
+def corregir_escritura(texto: str) -> str:
+    """Corrige errores de escritura en palabras clave («calaificacion» → «calificacion»)."""
+    palabras = []
+    for palabra in texto.split():
+        limpia = palabra.strip(".,;:!?¿¡()\"'")
+        if len(limpia) >= 6 and limpia not in VOCABULARIO:
+            cercana = difflib.get_close_matches(limpia, VOCABULARIO, n=1, cutoff=0.85)
+            if cercana:
+                palabra = palabra.replace(limpia, cercana[0])
+        palabras.append(palabra)
+    return " ".join(palabras)
+
+
 def extraer_hechos(mensaje: str) -> dict[str, Any]:
     """Convierte un mensaje en hechos verificables por las reglas B1–B17."""
-    t = normalizar(mensaje)
+    t = corregir_escritura(normalizar(mensaje))
     sin_negaciones = re.sub(NEGACION_BENEFICIO, " ", t)
     beneficio = _hay(BENEFICIO, sin_negaciones)
     ventaja = _hay(VENTAJA, t) and not _hay(r"no (cuenta|afecta|influye|vale) (para|en) la (calificacion|nota)", t)
@@ -224,7 +253,8 @@ def respuesta_si_no(mensaje: str) -> str | None:
     palabras = t.split()
     if not palabras or len(palabras) > 6 or t.startswith("si no "):
         return None
-    if re.match(r"^(no se|no lo se|quiza|tal vez|puede ser|no estoy segur|igual y)", t):
+    if re.match(r"^(no se|no lo se|quiza|tal vez|puede ser|no estoy segur|igual y|no entiendo|no comprendo"
+                r"|no me queda claro|a que te refieres|como que)", t):
         return "no_se"
     if re.match(r"^(si|claro|por supuesto|de acuerdo|ok|okay|esta bien)\b", t):
         return "si"
@@ -255,6 +285,7 @@ class Ficha:
     nota_cuestionada: bool = False
     afectacion: bool = False
     otro_tema: str | None = None
+    implicito: bool = False
     decisiones: dict[str, str] = field(default_factory=dict)   # regla -> "si" | "no" | "desconocido"
 
     def actualizar(self, h: dict[str, Any]) -> None:
@@ -280,6 +311,7 @@ class Ficha:
         self.represalia |= h["represalia"]
         self.nota_cuestionada |= h["nota_cuestionada"]
         self.afectacion |= h["afectacion"]
+        self.implicito |= h["implicito"]
         if h["otro_tema"]:
             self.otro_tema = h["otro_tema"]
 
@@ -296,6 +328,7 @@ class SesionAutomata:
         self.pendiente: str | None = None
         self.intentos = 0
         self.turnos = 0
+        self._nota: str | None = None   # texto que solo corresponde al turno actual
 
     # -- utilidades -------------------------------------------------------
     def _mover(self, regla: str, reglas: list[str]) -> None:
@@ -304,6 +337,12 @@ class SesionAutomata:
 
     def _pregunta_del_estado(self) -> str | None:
         propia = self.ficha.participacion in PARTICIPACION_PROPIA
+        f = self.ficha
+        if self.estado == "q1":
+            if (f.beneficio or f.implicito) and not f.intercambio and f.procedencia != "indirecta" \
+                    and "C1" not in f.decisiones:
+                return "C1"
+            return None
         if self.estado == "q2":
             return "B15" if propia else ("B10" if "B10" not in self.ficha.decisiones else None)
         if self.estado == "q3":
@@ -320,6 +359,7 @@ class SesionAutomata:
 
     # -- ciclo principal ----------------------------------------------------
     def procesar(self, mensaje: str) -> dict[str, Any]:
+        self._nota = None
         if not mensaje.strip():
             return self._resultado([], None, None, aviso="Mensaje vacío.")
         reglas: list[str] = []
@@ -370,6 +410,8 @@ class SesionAutomata:
         if not hay_hechos and self.estado == "q0" and re.match(SALUDO, h["texto"]) and len(h["texto"].split()) <= 4:
             return self._resultado(reglas, None, None, aviso="Hola. Puedes preguntarme por Primer Contacto o contarme qué pasó.")
 
+        if not h["intercambio"] and (self.ficha.beneficio or self.ficha.implicito) and h["ventaja"] and h["nexo"]:
+            h["intercambio"] = True
         if self.estado == "q0":
             self._mover("B3", reglas)
         self.ficha.actualizar(h)
@@ -414,11 +456,20 @@ class SesionAutomata:
             if h["intercambio"]:
                 self._mover("B13", reglas)
 
+        anterior = self.pendiente
         # Una amenaza física sin indicio de peligro actual: se pregunta si el peligro es actual.
         if h["amenaza"] == "fisica" and self.ficha.peligro_actual is None and self.estado != "qS":
             self._preguntar("B16")
         elif self.pendiente != "B16":
             self._preguntar(self._pregunta_del_estado())
+        # La misma aclaración sin información nueva: se reformula una vez y luego no se insiste.
+        if anterior == "C1" and self.pendiente == "C1" and not reglas:
+            self.intentos += 1
+            if self.intentos >= 2:
+                self.ficha.decisiones["C1"] = "desconocido"
+                self._preguntar(None)
+                self._nota = ("No pasa nada si no lo tienes claro. Puedo explicarte qué vías existen, o puedes "
+                              "contarme más cuando quieras.")
         return salida
 
     def _resolver(self, respuesta: str, reglas: list[str]) -> dict[str, Any]:
@@ -431,10 +482,29 @@ class SesionAutomata:
                     self.ficha.peligro_actual = False
                 self._preguntar(None)
                 self._preguntar(self._pregunta_del_estado())
+                if regla == "C1":
+                    self._nota = ("No pasa nada si no lo tienes claro. Puedo explicarte qué vías existen, o puedes "
+                                  "contarme más cuando quieras.")
+                    return self._resultado(reglas, None, None)
                 return self._resultado(reglas, None, None, aviso="Sin respuesta por ahora; seguimos con lo que sabemos.")
-            return self._resultado(reglas, None, None, aviso=REPREGUNTA)
+            # La aclaración se reformula; las decisiones (1,0) recuerdan que se puede decir que no.
+            return self._resultado(reglas, None, None, aviso=None if regla in REFORMULACION else REPREGUNTA)
         self.ficha.decisiones[regla] = respuesta
         self._preguntar(None)
+        if regla == "C1":
+            if respuesta == "no":
+                self._nota = ("Entonces no se describe un intercambio por una ventaja académica y no lo trato como "
+                              "soborno. Conviene anotar fecha, materia y palabras exactas por si algo cambia; si hay "
+                              "algo más, cuéntamelo.")
+            if respuesta == "si":
+                f = self.ficha
+                f.intercambio = True
+                f.procedencia = "directa"
+                f.participacion = ("pago_bajo_presion" if f.presion and f.pago else "entrego" if f.pago
+                                   else "ofrecio" if f.ofrecio else "recibio")
+                self._mover("B7", reglas)
+            self._preguntar(self._pregunta_del_estado())
+            return self._resultado(reglas, None, None)
         if regla == "B16":
             self.ficha.peligro_actual = respuesta == "si"
             if respuesta == "si":
@@ -489,12 +559,14 @@ class SesionAutomata:
             elif f.procedencia == "indirecta":
                 partes.append("Lo que cuentas es un comentario de terceros; no lo trato como un hecho comprobado. "
                               "Si alguien vivió el episodio de primera mano, puede pedir orientación y aportar lo que recuerde.")
-            elif "B4" in reglas:
-                partes.append("Una insinuación puede ser relevante, pero falta saber si hubo una condición concreta. "
-                              "¿Te pidió algo específico o condicionó la calificación a algo? ¿Qué palabras usó?")
-            elif f.beneficio and not f.intercambio:
-                partes.append("¿Ese pago o beneficio estuvo condicionado a una calificación o a otra ventaja académica, "
-                              "o fue un trámite ordinario?")
+            elif self._nota:
+                partes.append(self._nota)
+            elif self.pendiente == "C1" and self.intentos >= 1:
+                pass  # se reformula la pregunta sin repetir la introducción
+            elif self.pendiente == "C1" and f.implicito:
+                partes.append("Una insinuación puede ser relevante, pero falta saber si hubo una condición concreta.")
+            elif self.pendiente == "C1":
+                partes.append("Necesito aclarar un dato antes de orientarte.")
             elif not aviso:
                 partes.append("Cuéntame qué pasó: quién pidió u ofreció algo, a cambio de qué, y si lo viviste tú.")
         elif e == "qS" and self.pendiente == "B17":
@@ -503,16 +575,27 @@ class SesionAutomata:
             partes.append("De acuerdo. La orientación de esta etapa sigue disponible y puedes decidir más adelante.")
         elif e == "q3" and movimiento == ["B8"] and "B3" not in reglas:
             partes.append("Queda registrado como un hecho nuevo del caso. " + AMENAZA_TEXTO)
-        elif e in ORIENTACION and (movimiento or not consulta):
+        elif e in ORIENTACION and movimiento:
             partes.append(ORIENTACION[e])
             if e == "q3" and (f.amenaza or f.represalia):
                 partes.append(AMENAZA_TEXTO)
+        if not partes and not self.pendiente:
+            partes.append("Sigo aquí. Si hay algo nuevo, cuéntamelo; la orientación de esta etapa sigue disponible.")
         vias = self.vias_concurrentes()
-        if vias and e not in ("q0", "q1", "qS"):
+        if vias and e not in ("q0", "q1", "qS") and movimiento:
             partes.append("También puede aplicar: " + "; ".join(vias) + ".")
         if self.pendiente:
-            partes.append(PREGUNTAS[self.pendiente])
+            partes.append(self.texto_pregunta())
         return " ".join(partes)
+
+    def texto_pregunta(self) -> str | None:
+        if not self.pendiente:
+            return None
+        if self.intentos >= 1 and self.pendiente in REFORMULACION:
+            return REFORMULACION[self.pendiente]
+        if self.pendiente == "C1" and self.ficha.implicito:
+            return "¿Te pidió algo concreto o condicionó la calificación a algo? Responde sí o no."
+        return PREGUNTAS[self.pendiente]
 
     def _resultado(self, reglas: list[str], consulta: str | None, salida: str | None,
                    aviso: str | None = None, hechos: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -538,7 +621,7 @@ class SesionAutomata:
             "consulta": consulta,
             "salida": salida,
             "otro_tema": self.ficha.otro_tema if salida else None,
-            "pregunta": PREGUNTAS.get(self.pendiente) if self.pendiente else None,
+            "pregunta": self.texto_pregunta(),
             "pendiente": self.pendiente,
             "aviso": aviso,
             "vias": self.vias_concurrentes(),
