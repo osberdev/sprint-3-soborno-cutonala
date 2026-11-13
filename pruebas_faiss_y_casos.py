@@ -135,6 +135,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
         self.assertIn("S05", respuesta["fuentes_consultadas"])
         self.assertNotIn("S01", respuesta["fuentes_consultadas"])
 
+    @unittest.skipUnless(importlib.util.find_spec("pypdf"), "pypdf no está instalado en este Python")
     def test_pdf_separados_con_procedencia_y_pagina(self):
         grupos = leer_documentos()
         self.assertGreater(len(grupos["procesos"]), 5)
