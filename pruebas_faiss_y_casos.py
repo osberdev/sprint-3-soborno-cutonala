@@ -1,15 +1,18 @@
 """Pruebas locales de procedencia y enrutamiento; no llaman a servicios externos."""
 
+from contextlib import redirect_stdout
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
 from casos_consulta import pregunta_por_antecedentes, resumen_registro
 from chatbot_soborno import ChatSoborno
-from faiss_soborno import DIMENSION, MODEL, leer_documentos, reconstruir_indice, _fragmentar
+from faiss_soborno import DIMENSION, MODEL, consulta_vectorial, leer_documentos, reconstruir_indice, _fragmentar
 
 
 class PruebasCasosYFaiss(unittest.TestCase):
@@ -114,35 +117,40 @@ class PruebasCasosYFaiss(unittest.TestCase):
         self.assertTrue(caso["fragmentos"])
         self.assertIsNotNone(caso["fallo_faiss"])
 
-    def test_modo_faiss_muestra_fragmento_sin_cabecera_pdf(self):
+    def test_modo_faiss_se_identifica_y_cita_sus_fuentes(self):
         class BuscadorFicticio:
             es_faiss = True
 
             def buscar(self, pregunta, estado, limite=3):
-                return [{"titulo": "investigacion_soborno, página 10", "pagina": 10,
-                         "archivo": "investigacion_soborno.pdf", "fuentes": [],
-                         # El extracto debe aportar algo que la respuesta no diga ya (D35).
-                         "texto": "Investigación documental | CUTonalá | Corte: 8 oct 2026 10 "
-                                  "6 Directorio. Conviene confirmar el turno por correo antes de acudir."},
-                        {"titulo": "investigacion_soborno, página 7", "pagina": 7,
-                         "archivo": "investigacion_soborno.pdf", "fuentes": ["S01"],
-                         "texto": "Un apartado distinto sobre procedimientos."}]
+                return [{"titulo": "6.2 Atención en CUTonalá", "apartado": "6.2", "archivo": "directorio_cutonala.md",
+                         "estados": ["B1", "q3"], "fuentes": ["S05"],
+                         "texto": "Conviene confirmar el turno por correo antes de acudir a la oficina."}]
 
         respuesta = ChatSoborno(buscador=BuscadorFicticio()).responder("¿Dónde encuentro Primer Contacto?")
         self.assertEqual(respuesta["modo"], "Local + autómata + FAISS")
-        self.assertIn("6 Directorio", respuesta["respuesta_chatbot"])
-        self.assertNotIn("Corte: 8 oct", respuesta["respuesta_chatbot"])
+        self.assertIn("Dato recuperado de «6.2 Atención en CUTonalá»", respuesta["respuesta_chatbot"])
         self.assertIn("S05", respuesta["fuentes_consultadas"])
-        self.assertNotIn("S01", respuesta["fuentes_consultadas"])
 
-    @unittest.skipUnless(importlib.util.find_spec("pypdf"), "pypdf no está instalado en este Python")
-    def test_pdf_separados_con_procedencia_y_pagina(self):
+    def test_fragmentos_faiss_salen_de_la_base_segmentada(self):
+        # Iteración 6: mismos archivos y exclusiones que la búsqueda local; ya no se leen los PDF.
         grupos = leer_documentos()
-        self.assertGreater(len(grupos["procesos"]), 5)
-        self.assertGreater(len(grupos["relatos"]), 1)
-        for tipo, fragmentos in grupos.items():
-            self.assertTrue(all(f["tipo"] == tipo and f["pagina"] >= 1 for f in fragmentos))
-            self.assertTrue(all(len(f["texto"]) <= 1000 for f in fragmentos))
+        procesos, relatos = grupos["procesos"], grupos["relatos"]
+        self.assertTrue(all(f["tipo"] == "procesos" and f["apartado"] and f["estados"] for f in procesos))
+        self.assertTrue(all(len(f["texto"]) <= 1000 for f in procesos + relatos))
+        apartados = {f["apartado"] for f in procesos}
+        self.assertFalse({"8.2", "12", "12.1", "9.1", "10.4"} & apartados)
+        self.assertNotIn("demostracion del prototipo", " ".join(f["texto"].lower() for f in procesos))
+        self.assertTrue(all(f["archivo"] == "relatos_campus.md" for f in relatos))
+        self.assertTrue(any("C01" in f["titulo"] for f in relatos))
+
+    def test_consulta_vectorial_no_incluye_el_mensaje(self):
+        chat = ChatSoborno()
+        estado = chat.sesion.procesar("El profesor Ramírez me pidió 500 pesos a cambio de aprobar la materia.")
+        texto = consulta_vectorial(estado, None)
+        for privado in ("Ramírez", "500", "pesos"):
+            self.assertNotIn(privado, texto)
+        self.assertIn("Primer Contacto", texto)
+        self.assertIn("Se describe un beneficio a cambio de una ventaja académica.", texto)
 
     def test_fragmentos_cubren_final_del_documento(self):
         texto = " ".join(f"palabra{i}" for i in range(300))
@@ -180,6 +188,63 @@ class PruebasCasosYFaiss(unittest.TestCase):
             self.assertEqual(resultado, {"procesos": 1, "relatos": 1})
             self.assertEqual(len(llamadas), 3)
             self.assertTrue((Path(temporal) / "manifest.json").is_file())
+
+
+
+@unittest.skipUnless(importlib.util.find_spec("faiss") and importlib.util.find_spec("numpy"),
+                     "FAISS no está instalado en este Python")
+class PruebasBuscadorFaiss(unittest.TestCase):
+    """Índice real de FAISS con embeddings ficticios deterministas: sin llamadas al servicio."""
+
+    @staticmethod
+    def vector(texto):
+        import hashlib
+        import numpy as np
+        semilla = int(hashlib.sha256(texto.encode("utf-8")).hexdigest()[:8], 16)
+        return [float(x) for x in np.random.default_rng(semilla).normal(size=DIMENSION)]
+
+    def setUp(self):
+        from faiss_soborno import BuscadorFaiss
+
+        self.enviados = []
+        prueba = self
+
+        class Modelos:
+            def embed_content(self, model, contents):
+                prueba.enviados.append(contents)
+                return types.SimpleNamespace(embeddings=[types.SimpleNamespace(values=prueba.vector(contents))])
+
+        self.carpeta = tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent)
+        self.addCleanup(self.carpeta.cleanup)
+        parche = patch("faiss_soborno.INDEX_DIR", Path(self.carpeta.name))
+        parche.start()
+        self.addCleanup(parche.stop)
+        with patch("faiss_soborno._embeddings", side_effect=lambda _c, textos: [self.vector(t) for t in textos]):
+            with redirect_stdout(io.StringIO()):
+                reconstruir_indice(cliente=object())
+        self.buscador = BuscadorFaiss(cliente=types.SimpleNamespace(models=Modelos()))
+
+    def test_pregunta_informativa_solo_recupera_sus_archivos(self):
+        r = ChatSoborno(buscador=self.buscador).responder("¿Quién es la encargada de Primer Contacto?")
+        self.assertEqual(r["modo"], "Local + autómata + FAISS")
+        self.assertTrue(r["fragmentos"])
+        self.assertTrue(all(f["archivo"] == "directorio_cutonala.md" for f in r["fragmentos"]))
+
+    def test_relato_filtra_por_estado_y_no_envia_el_mensaje(self):
+        r = ChatSoborno(buscador=self.buscador).responder(
+            "El profesor Ramírez me pidió 500 pesos a cambio de aprobar la materia.")
+        self.assertEqual(r["estado"], "q3")
+        self.assertTrue(r["fragmentos"])
+        self.assertTrue(all({"q3", "q5"} & set(f["estados"]) for f in r["fragmentos"]))
+        enviados = " ".join(self.enviados)
+        for privado in ("Ramírez", "500", "pesos"):
+            self.assertNotIn(privado, enviados)
+
+    def test_cambio_en_la_base_exige_reindexar(self):
+        from faiss_soborno import BuscadorFaiss
+        with patch("faiss_soborno._huella", return_value={"distinta": True}):
+            with self.assertRaisesRegex(RuntimeError, "reindexar"):
+                BuscadorFaiss(cliente=object())
 
 
 if __name__ == "__main__":

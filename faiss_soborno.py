@@ -1,7 +1,16 @@
-"""Índice FAISS individual, compatible con el flujo documental de app.py del equipo.
+"""Índice FAISS individual sobre la base segmentada `conocimientos/` (iteración 6).
 
-Se construye únicamente desde los PDF de este módulo. El índice del profesor se
-inspeccionó como referencia, pero no se deserializa ni se mezcla con estos datos.
+Sigue el flujo de app.py del equipo (fragmentos de 1 000 caracteres con 200 de
+solapamiento, embeddings `gemini-embedding-2`, índice FAISS guardado), con tres
+diferencias deliberadas:
+
+- Los fragmentos salen de los mismos archivos y reglas que la búsqueda local: llevan
+  apartado, archivo y estados del autómata, y excluyen lo que el manifiesto excluye
+  (capítulo 12, apartado 8.2 y frases de diseño del prototipo).
+- Los metadatos se guardan en JSON; no hay `index.pkl` ni deserialización con pickle.
+- La consulta vectorial no envía el mensaje del estudiante: se construye con la
+  etapa, las reglas, la pregunta informativa y los hechos del caso en frases neutras.
+  Después se aplica el mismo filtro por estado o por pregunta que en la búsqueda local.
 """
 
 from __future__ import annotations
@@ -17,15 +26,16 @@ from typing import Any
 
 
 BASE = Path(__file__).resolve().parent
-PDF_DIR = BASE / "conocimientos_pdf"
+CONOCIMIENTOS = BASE / "conocimientos"
+RELATOS = CONOCIMIENTOS / "relatos_campus.md"
 INDEX_DIR = BASE / "faiss_index_soborno"
 MODEL = "gemini-embedding-2"
 DIMENSION = 3072
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 DOCUMENTOS = {
-    "procesos": "investigacion_soborno.pdf",
-    "relatos": "casos_soborno.pdf",
+    "procesos": "conocimientos/*.md (archivos de orientación del manifiesto)",
+    "relatos": "conocimientos/relatos_campus.md",
 }
 
 
@@ -49,23 +59,21 @@ def _cliente():
     return genai.Client(api_key=clave)
 
 
-def _fuentes_pdf() -> dict[str, Path]:
-    fuentes = {tipo: PDF_DIR / nombre for tipo, nombre in DOCUMENTOS.items()}
-    faltantes = [str(path) for path in fuentes.values() if not path.is_file()]
-    if faltantes:
-        raise FileNotFoundError("Faltan documentos para FAISS: " + ", ".join(faltantes))
-    return fuentes
-
-
-def _huella() -> dict[str, Any]:
+def _huella(grupos: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+    """Configuración y contenido exacto de cada grupo: si cambia un archivo o el manifiesto, se reindexa."""
+    grupos = grupos if grupos is not None else leer_documentos()
     return {
         "modelo": MODEL,
         "dimension": DIMENSION,
         "tamano": CHUNK_SIZE,
         "solapamiento": CHUNK_OVERLAP,
         "archivos": {
-            tipo: {"nombre": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            for tipo, path in _fuentes_pdf().items()
+            tipo: {
+                "nombre": DOCUMENTOS[tipo],
+                "sha256": hashlib.sha256(json.dumps(fragmentos, ensure_ascii=False, sort_keys=True)
+                                         .encode("utf-8")).hexdigest(),
+            }
+            for tipo, fragmentos in grupos.items()
         },
     }
 
@@ -89,29 +97,29 @@ def _fragmentar(texto: str) -> list[str]:
     return resultado
 
 
+def _partes(fragmento: dict[str, Any], tipo: str) -> list[dict[str, Any]]:
+    """Divide un fragmento largo en partes de 1 000 caracteres con 200 de solapamiento."""
+    partes = _fragmentar(fragmento["texto"]) or [re.sub(r"\s+", " ", fragmento["texto"]).strip()]
+    return [{**fragmento, "texto": parte, "tipo": tipo, "parte": numero}
+            for numero, parte in enumerate(partes, 1)]
+
+
 def leer_documentos() -> dict[str, list[dict[str, Any]]]:
-    """Extrae texto de PDF, manteniendo origen y página por fragmento."""
-    try:
-        from pypdf import PdfReader
-    except ImportError as error:
-        raise RuntimeError("Instala pypdf con: pip install -r requirements-faiss.txt") from error
-    grupos: dict[str, list[dict[str, Any]]] = {}
-    for tipo, path in _fuentes_pdf().items():
-        fragmentos = []
-        for numero, pagina in enumerate(PdfReader(str(path)).pages, 1):
-            for texto in _fragmentar(pagina.extract_text() or ""):
-                fragmentos.append({
-                    "titulo": f"{path.stem}, página {numero}",
-                    "texto": texto,
-                    "fuentes": list(dict.fromkeys(re.findall(r"\bS\d{2}\b", texto))) if tipo == "procesos" else [],
-                    "tipo": tipo,
-                    "archivo": path.name,
-                    "pagina": numero,
-                })
-        if not fragmentos:
-            raise ValueError(f"El PDF no produjo fragmentos: {path}")
-        grupos[tipo] = fragmentos
-    return grupos
+    """Fragmentos de orientación (los mismos de la búsqueda local) y del registro de relatos."""
+    from chatbot_soborno import cargar_fragmentos
+
+    procesos = [parte for f in cargar_fragmentos() for parte in _partes(f, "procesos")]
+    relatos: list[dict[str, Any]] = []
+    texto = RELATOS.read_text(encoding="utf-8")
+    for seccion in re.split(r"^#{2,3} ", texto, flags=re.M)[1:]:
+        titulo, _, cuerpo = seccion.partition("\n")
+        cuerpo = re.sub(r"<!--.*?-->", " ", cuerpo, flags=re.S).replace("**", "")
+        if len(cuerpo.strip()) >= 80:
+            relatos.extend(_partes({"titulo": titulo.strip(), "texto": cuerpo, "fuentes": [],
+                                    "archivo": RELATOS.name, "apartado": "", "estados": ["B2"]}, "relatos"))
+    if not procesos or not relatos:
+        raise ValueError("La base de conocimientos no produjo fragmentos para FAISS.")
+    return {"procesos": procesos, "relatos": relatos}
 
 
 def _textos_para_embedding(fragmentos: list[dict[str, Any]]) -> list[str]:
@@ -131,7 +139,7 @@ def _embeddings(cliente: Any, textos: list[str]) -> list[list[float]]:
                 salida = cliente.models.embed_content(model=MODEL, contents=entradas)
                 break
             except Exception as error:
-                # El nivel gratuito puede agotar su cuota por minuto a mitad del PDF.
+                # El nivel gratuito puede agotar su cuota por minuto a mitad de un grupo.
                 if getattr(error, "code", None) != 429 or intento == 2:
                     raise
                 print("Cuota por minuto alcanzada; reintentando este lote en 30 segundos...", flush=True)
@@ -156,7 +164,7 @@ def _meta_grupo(tipo: str, fragmentos: list[dict[str, Any]], huella: dict[str, A
 
 
 def _grupo_guardado_es_valido(tipo: str, fragmentos: list[dict[str, Any]], huella: dict[str, Any], faiss: Any) -> bool:
-    """Sólo reutiliza un grupo completo de los mismos PDF, modelo y fragmentos."""
+    """Sólo reutiliza un grupo completo de los mismos documentos, modelo y fragmentos."""
     try:
         meta = json.loads((INDEX_DIR / f"{tipo}.meta.json").read_text(encoding="utf-8"))
         guardados = json.loads((INDEX_DIR / f"{tipo}.json").read_text(encoding="utf-8"))
@@ -187,11 +195,11 @@ def _guardar_grupo(tipo: str, indice: Any, fragmentos: list[dict[str, Any]], hue
 
 
 def reconstruir_indice(cliente: Any | None = None) -> dict[str, int]:
-    """Reanuda por PDF si hay un grupo válido. No abre el index.pkl recibido."""
+    """Reanuda por grupo si hay uno válido. No abre el index.pkl recibido."""
     faiss, np = _dependencias()
     cliente = cliente or _cliente()
     grupos = leer_documentos()
-    huella = _huella()
+    huella = _huella(grupos)
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
     for tipo, fragmentos in grupos.items():
         if _grupo_guardado_es_valido(tipo, fragmentos, huella, faiss):
@@ -223,7 +231,7 @@ class BuscadorFaiss:
         except FileNotFoundError as error:
             raise RuntimeError("No existe el índice individual. Ejecuta --reindexar-faiss.") from error
         if manifest != _huella():
-            raise RuntimeError("Los PDF o la configuración cambiaron. Ejecuta --reindexar-faiss.")
+            raise RuntimeError("La base de conocimientos o la configuración cambiaron. Ejecuta --reindexar-faiss.")
         self.indices = {}
         self.fragmentos = {}
         for tipo in DOCUMENTOS:
@@ -232,18 +240,59 @@ class BuscadorFaiss:
             if self.indices[tipo].ntotal != len(self.fragmentos[tipo]):
                 raise RuntimeError(f"Índice y metadatos incompatibles: {tipo}. Reindexa.")
 
-    def buscar(self, pregunta: str, estado: dict[str, Any], limite: int = 3, *, tipo: str = "procesos") -> list[dict[str, Any]]:
-        if tipo not in DOCUMENTOS:
-            raise ValueError(f"Tipo de documentos desconocido: {tipo}")
-        texto = f"task: question answering | query: {pregunta}"
-        salida = self.cliente.models.embed_content(model=MODEL, contents=texto)
+    def _vector(self, texto: str) -> Any:
+        salida = self.cliente.models.embed_content(model=MODEL, contents=f"task: question answering | query: {texto}")
         recibidos = salida.embeddings or []
         vector = list(recibidos[0].values or []) if recibidos else []
         if len(vector) != DIMENSION:
             raise RuntimeError("La consulta no produjo un embedding de 3072 dimensiones.")
-        _, ids = self.indices[tipo].search(self.np.asarray([vector], dtype="float32"), limite)
-        return [self.fragmentos[tipo][int(i)] for i in ids[0] if 0 <= int(i) < len(self.fragmentos[tipo])]
+        return self.np.asarray([vector], dtype="float32")
+
+    def buscar(self, pregunta: str, estado: dict[str, Any], limite: int = 3) -> list[dict[str, Any]]:
+        """Ordena todos los fragmentos por similitud y aplica el filtro por estado o por pregunta.
+
+        `pregunta` solo sirve para reconocer la intención; al servicio se envía una consulta
+        construida con la etapa y los hechos del caso, nunca el texto del estudiante.
+        """
+        from chatbot_soborno import admite
+        from sprint3_soborno import intencion_pregunta
+
+        consulta = estado.get("consulta") or intencion_pregunta(pregunta)
+        fragmentos = self.fragmentos["procesos"]
+        _, ids = self.indices["procesos"].search(self._vector(consulta_vectorial(estado, consulta)), len(fragmentos))
+        elegidos: list[dict[str, Any]] = []
+        apartados: set[str] = set()
+        for i in ids[0]:
+            if not 0 <= int(i) < len(fragmentos):
+                continue
+            fragmento = fragmentos[int(i)]
+            if fragmento["apartado"] in apartados or not admite(fragmento, estado, consulta):
+                continue
+            elegidos.append(fragmento)
+            apartados.add(fragmento["apartado"])
+            if len(elegidos) >= limite:
+                break
+        return elegidos
 
     def buscar_registro(self, limite: int = 2) -> list[dict[str, Any]]:
         """Consulta los relatos sin remitir al servicio el nombre escrito por el usuario."""
-        return self.buscar("relatos anónimos sobre dinero u obsequios a cambio de calificación", {}, limite, tipo="relatos")
+        fragmentos = self.fragmentos["relatos"]
+        _, ids = self.indices["relatos"].search(
+            self._vector("relatos anónimos sobre dinero u obsequios a cambio de calificación"), limite)
+        return [fragmentos[int(i)] for i in ids[0] if 0 <= int(i) < len(fragmentos)]
+
+
+def consulta_vectorial(estado: dict[str, Any], consulta: str | None) -> str:
+    """Texto de la consulta para el embedding: etapa, reglas, pregunta y hechos neutros (sin el mensaje)."""
+    from automata_soborno import ESTADOS, REGLAS
+    from gemini_soborno import DESCRIPCION_CONSULTA, hechos_del_caso
+
+    partes: list[str] = []
+    if consulta in DESCRIPCION_CONSULTA:
+        partes.append(DESCRIPCION_CONSULTA[consulta])
+    if estado.get("estado") in ESTADOS and estado["estado"] not in ("q0", "q1"):
+        info = ESTADOS[estado["estado"]]
+        partes.append(f"{info['nombre']}: {info['instancia']}")
+    partes += [REGLAS[r] for r in estado.get("reglas", []) if r in REGLAS and r not in ("B1", "B2")]
+    partes += hechos_del_caso(estado.get("ficha") or {})
+    return ". ".join(partes) or "orientación sobre soborno académico en CUTonalá"

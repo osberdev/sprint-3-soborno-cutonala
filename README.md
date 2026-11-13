@@ -34,8 +34,8 @@ Mensaje del estudiante
 | `conocimientos/primer_contacto_soborno.md` | Ficha institucional de una versión anterior; ningún módulo la consulta. |
 | `conocimientos/relatos_campus.md` | Relatos aportados sin nombres, con procedencia, datos faltantes y límites de uso, más el apartado 10.4 de la investigación. |
 | `conocimientos/casos_docentes.ejemplo.json` | Estructura vacía para registrar testimonios nominales por separado. |
-| `conocimientos_pdf/` | Dos PDF independientes: investigación de procesos y registro de relatos. |
-| `faiss_soborno.py` | Construcción y consulta opcional del índice FAISS individual desde esos PDF. |
+| `conocimientos_pdf/` | Dos PDF de una versión anterior (investigación y registro de relatos), para la base compartida del equipo; el módulo ya no los lee. |
+| `faiss_soborno.py` | Construcción y consulta opcional del índice FAISS individual desde `conocimientos/`. |
 | `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
@@ -52,7 +52,7 @@ Mensaje del estudiante
 
 En la conversación interactiva, el caso se guarda después de cada turno en `caso_guardado.local.json`, excluido de Git. El archivo contiene solo el estado del autómata, la pregunta pendiente, el camino recorrido y la ficha (indicadores como «hubo intercambio» o «amenaza académica» y las decisiones de sí o no); nunca el texto de los mensajes ni las respuestas. Al iniciar, si existe un caso guardado, el programa pregunta si se retoma: «sí» continúa donde se quedó, con la pregunta pendiente; «no» lo borra. Durante la conversación, `olvidar` o `reset` borran el archivo. `--sin-guardar` desactiva el guardado; `--demo` y `--pregunta` nunca escriben en disco. Un archivo dañado o alterado (estado, flecha o valor fuera del autómata) se ignora con un aviso.
 
-El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional basado en los dos PDF individuales. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
+El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional sobre los mismos archivos de `conocimientos/`. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
 
 ### Relatos de clase sobre docentes identificados
 
@@ -70,7 +70,15 @@ Este módulo conserva el contrato sencillo `buscar(pregunta, estado, limite=3)` 
 
 ### Construir y consultar FAISS
 
-Desde Ubuntu, dentro de este repositorio y con el entorno virtual activado:
+Desde la iteración 6 (13 de noviembre de 2026), el índice se construye con los mismos fragmentos que usa la búsqueda local: los archivos de orientación de `conocimientos/` con las exclusiones del manifiesto (capítulo 12, apartado 8.2 y frases de diseño del prototipo), divididos en partes de 1 000 caracteres con 200 de solapamiento, y el registro `relatos_campus.md` como grupo aparte. Cada vector conserva en JSON su apartado, archivo, fuentes y estados del autómata.
+
+| Aspecto | `app.py` del equipo | Este módulo |
+|---|---|---|
+| Fuente | PDF de `conocimientos/` | Archivos Markdown de `conocimientos/` según `manifiesto.json` |
+| Fragmentos | 1 000 / 200 caracteres | 1 000 / 200 caracteres, sin cruzar apartados |
+| Metadatos | `index.pkl` (pickle) | JSON, sin deserialización con pickle |
+| Consulta | El texto de la pregunta | Etapa, reglas, pregunta informativa y hechos del caso en frases neutras; nunca el mensaje del estudiante |
+| Filtro | Ninguno (`k=4`) | El mismo que la búsqueda local: archivos de la pregunta informativa o del estado del caso |
 
 ```bash
 python -m pip install -r requirements-faiss.txt
@@ -80,13 +88,9 @@ python chatbot_soborno.py --reindexar-faiss
 python chatbot_soborno.py --faiss
 ```
 
-La indexación requiere una clave y conexión a Gemini, pues genera embeddings de los fragmentos de ambos PDF. Después guarda archivos `.faiss`, metadatos JSON y un manifiesto con huellas de los PDF en `faiss_index_soborno/`. Una consulta en modo `--faiss` también necesita la clave para convertir la pregunta en vector. Si cambian los PDF, reconstruye el índice. El índice generado queda fuera de Git; los PDF y el código sí son reproducibles. Se puede combinar `--faiss --gemini` para redactar con Gemini, o usar sólo `--faiss` para mantener la redacción local.
+La indexación requiere clave y conexión a Gemini para generar los embeddings (97 fragmentos de orientación y 8 de relatos con la base actual). Si cambia un archivo de `conocimientos/` o el manifiesto, el programa pide reconstruir el índice. El índice queda fuera de Git. Si la consulta vectorial falla durante una conversación, se usa la búsqueda local y se informa del fallo. Se puede combinar `--faiss --gemini`.
 
-El modo `--faiss` ya se verificó en Ubuntu con una llamada real a la API y un índice de 107 fragmentos de procesos y 7 de relatos. El índice se conserva sólo en el entorno local de quien lo generó; cada clon debe construirlo con su propia clave. Si falla la consulta vectorial durante una conversación, se utiliza la búsqueda local y se informa del fallo.
-
-La reconstrucción conserva por separado cada PDF ya indexado. Si Gemini devuelve un límite temporal (429), espera el reintento automático; si la ejecución termina sin completar ambos documentos, vuelve a lanzar `--reindexar-faiss` cuando se restablezca la cuota. Los grupos guardados y validados se reutilizan sin volver a generar sus vectores.
-
-En la salida de `--faiss`, «MODO» identifica expresamente FAISS. La cabecera repetida del PDF se omite al mostrar fragmentos; los vectores almacenados no se alteran, así que este ajuste no exige reconstruir el índice. En preguntas informativas, los enlaces corresponden al apartado institucional y a los fragmentos de la misma página que el resultado principal.
+La reconstrucción conserva por separado cada grupo ya indexado. Si Gemini devuelve un límite temporal (429), espera el reintento automático; si la ejecución termina sin completar ambos grupos, vuelve a lanzar `--reindexar-faiss` cuando se restablezca la cuota.
 
 ## Documentación de los tres niveles
 

@@ -183,10 +183,10 @@ class Buscador:
             consulta += " amenaza represalia medidas proteccion"
         buscadas = set(palabras(consulta))
         total = len(self.fragmentos)
-        permitidos = estados_de_busqueda(estado) if not intencion else None
+        consulta_informativa = estado.get("consulta") or intencion
         resultados = []
         for fragmento, conteo in zip(self.fragmentos, self.conteos):
-            if permitidos and not permitidos & set(fragmento.get("estados", [])):
+            if not admite(fragmento, estado, consulta_informativa):
                 continue
             longitud = sum(conteo.values())
             titulo = set(palabras(fragmento["titulo"]))
@@ -252,6 +252,39 @@ class Buscador:
 DESTINO_PREGUNTA = {"B10": "q3", "B14": "q5", "B15": "q6", "B16": "qS"}
 
 
+# Archivos que responden cada pregunta informativa (D34): «¿Quién es la encargada…?»
+# ya no recupera la matriz de prioridad ni el nivel legal.
+ARCHIVOS_POR_CONSULTA = {
+    "encargado": {"directorio_cutonala.md"},
+    "ubicacion": {"directorio_cutonala.md"},
+    "contacto": {"directorio_cutonala.md"},
+    "coordinacion": {"directorio_cutonala.md", "revision_evaluacion.md"},
+    "programa": {"primer_contacto.md", "denuncia_universitaria.md"},
+    "relacion": {"primer_contacto.md", "denuncia_universitaria.md"},
+    "plazo": {"revision_evaluacion.md"},
+    "niveles": {"canalizacion.md", "nivel_personal.md", "denuncia_universitaria.md", "nivel_legal.md"},
+    "legal": {"nivel_legal.md", "directorio_externo.md", "asesoria_y_participacion.md"},
+    "personal": {"nivel_personal.md"},
+}
+
+
+def admite(fragmento: dict[str, Any], estado: dict[str, Any], consulta: str | None) -> bool:
+    """Filtro común a la búsqueda local y a FAISS.
+
+    Una pregunta informativa consulta los archivos que la responden; un relato, los archivos
+    de su estado (y del que abriría la pregunta pendiente). Si el mensaje trae ambas cosas,
+    vale cualquiera de los dos criterios.
+    """
+    relato = any(r not in ("B1", "B2") for r in estado.get("reglas", []))
+    if consulta in ARCHIVOS_POR_CONSULTA:
+        if fragmento.get("archivo") in ARCHIVOS_POR_CONSULTA[consulta]:
+            return True
+        if not relato:
+            return False
+    permitidos = estados_de_busqueda(estado)
+    return not permitidos or bool(permitidos & set(fragmento.get("estados", [])))
+
+
 def estados_de_busqueda(estado: dict[str, Any]) -> set[str]:
     """Estados cuyos archivos se consultan: el actual y el que abriría la pregunta pendiente."""
     actuales = {estado.get("estado")} - {None, "q0"}
@@ -270,16 +303,9 @@ def ids_y_enlaces(fragmentos: list[dict[str, Any]], estado: dict[str, Any]) -> d
 
 
 def texto_visible(fragmento: dict[str, Any]) -> str:
-    """Prepara el fragmento para mostrarlo: sin formato Markdown ni cabecera repetida del PDF."""
+    """Prepara el fragmento para mostrarlo, sin formato Markdown."""
     texto = re.sub(r"\*\*(.+?)\*\*", r"\1", fragmento["texto"])
-    texto = re.sub(r"(^|\s)- (?=\S)", r"\1", texto)
-    if fragmento.get("archivo") == "investigacion_soborno.pdf":
-        texto = re.sub(
-            r"^Investigación documental\s*\|\s*CUTonalá\s*\|\s*Corte:\s*\d{1,2}\s+\w+\s+\d{4}\s+\d+\s*",
-            "",
-            texto,
-        )
-    return texto
+    return re.sub(r"(^|\s)- (?=\S)", r"\1", texto)
 
 
 CASO_GUARDADO = Path(__file__).resolve().parent / "caso_guardado.local.json"
@@ -350,7 +376,7 @@ class ChatSoborno:
                 try:
                     fragmentos = self.buscador.buscar_registro()
                 except Exception as error:
-                    fallo_faiss = str(error)
+                    fallo_faiss = describir_fallo(error)
             return {
                 **estado,
                 "success": True,
@@ -376,7 +402,7 @@ class ChatSoborno:
             except Exception as error:
                 if isinstance(self.buscador, Buscador):
                     raise
-                fallo_faiss = str(error)
+                fallo_faiss = describir_fallo(error)
                 fragmentos = Buscador().buscar(mensaje, estado)
         respuesta = estado["respuesta"]
         pregunta = estado.get("pregunta")
@@ -414,13 +440,6 @@ class ChatSoborno:
                     respuesta = redaccion + (f"\n{pregunta}" if pregunta else "")
             except Exception as error:
                 fallo_gemini = describir_fallo(error)
-        fragmentos_para_enlaces = fragmentos
-        if intencion_pregunta(mensaje) and fragmentos and fragmentos[0].get("pagina"):
-            principal = fragmentos[0]
-            fragmentos_para_enlaces = [
-                f for f in fragmentos
-                if f.get("archivo") == principal.get("archivo") and f.get("pagina") == principal["pagina"]
-            ]
         return {
             **estado,
             "respuesta_chatbot": respuesta,
@@ -430,7 +449,7 @@ class ChatSoborno:
                 + ("FAISS" if getattr(self.buscador, "es_faiss", False) and not fallo_faiss else "documentos")
             ),
             "fragmentos": fragmentos,
-            "fuentes_consultadas": ids_y_enlaces(fragmentos_para_enlaces, estado),
+            "fuentes_consultadas": ids_y_enlaces(fragmentos, estado),
             "fallo_gemini": fallo_gemini,
             "gemini_no_fundamentado": no_fundamentado,
             "fallo_faiss": fallo_faiss,
