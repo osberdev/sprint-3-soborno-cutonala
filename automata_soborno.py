@@ -247,16 +247,32 @@ def extraer_hechos(mensaje: str) -> dict[str, Any]:
     }
 
 
+def _sin_alargamientos(texto: str) -> str:
+    """Reduce letras repetidas: «siii» → «si», «noo» → «no» (D28)."""
+    return re.sub(r"(\w)\1+", r"\1", texto)
+
+
+# Respuestas que solo cuentan si son el mensaje completo: «ok gracias» o «va a
+# reprobarme» no son un consentimiento (D30).
+SI_EXACTO = {_sin_alargamientos(x) for x in ("si", "sip", "sep", "simon", "ok", "okay", "va", "sale", "dale",
+                                              "afirmativo", "correcto", "asi es")}
+NO_EXACTO = {_sin_alargamientos(x) for x in ("nop", "nope", "nel", "negativo", "para nada")}
+
+
 def respuesta_si_no(mensaje: str) -> str | None:
     """Interpreta una respuesta (1,0): «si», «no», «no_se» o None si no es respuesta."""
-    t = normalizar(mensaje).strip(" .,!¡¿?")
+    t = _sin_alargamientos(normalizar(mensaje).strip(" .,!¡¿?"))
     palabras = t.split()
     if not palabras or len(palabras) > 6 or t.startswith("si no "):
         return None
+    if t in SI_EXACTO:
+        return "si"
+    if t in NO_EXACTO:
+        return "no"
     if re.match(r"^(no se|no lo se|quiza|tal vez|puede ser|no estoy segur|igual y|no entiendo|no comprendo"
                 r"|no me queda claro|a que te refieres|como que)", t):
         return "no_se"
-    if re.match(r"^(si|claro|por supuesto|de acuerdo|ok|okay|esta bien)\b", t):
+    if re.match(r"^(si|claro|por supuesto|de acuerdo|esta bien)\b", t):
         return "si"
     if re.match(r"^no\b", t):
         return "no"
@@ -330,6 +346,7 @@ class SesionAutomata:
         self.turnos = 0
         self._nota: str | None = None   # texto que solo corresponde al turno actual
         self._ultima: str | None = None  # última respuesta, para no repetirla literalmente
+        self._decidio_no = False          # se respondió «no» a una decisión en este turno
 
     # -- utilidades -------------------------------------------------------
     def _mover(self, regla: str, reglas: list[str]) -> None:
@@ -345,7 +362,9 @@ class SesionAutomata:
                 return "C1"
             return None
         if self.estado == "q2":
-            return "B15" if propia else ("B10" if "B10" not in self.ficha.decisiones else None)
+            # Cada decisión se pregunta una vez: un «no» a B15 no se vuelve a preguntar (D29).
+            regla = "B15" if propia else "B10"
+            return regla if regla not in self.ficha.decisiones else None
         if self.estado == "q3":
             if propia and "B15" not in self.ficha.decisiones:
                 return "B15"
@@ -361,6 +380,7 @@ class SesionAutomata:
     # -- ciclo principal ----------------------------------------------------
     def procesar(self, mensaje: str) -> dict[str, Any]:
         self._nota = None
+        self._decidio_no = False
         if not mensaje.strip():
             return self._resultado([], None, None, aviso="Mensaje vacío.")
         reglas: list[str] = []
@@ -468,34 +488,44 @@ class SesionAutomata:
             self._preguntar("B16")
         elif self.pendiente != "B16":
             self._preguntar(self._pregunta_del_estado())
-        # La misma aclaración sin información nueva: se reformula una vez y luego no se insiste.
-        if anterior == "C1" and self.pendiente == "C1" and not reglas:
-            self.intentos += 1
-            if self.intentos >= 2:
-                self.ficha.decisiones["C1"] = "desconocido"
-                self._preguntar(None)
-                self._nota = ("No pasa nada si no lo tienes claro. Puedo explicarte qué vías existen, o puedes "
-                              "contarme más cuando quieras.")
+        # Un mensaje que no responde la pregunta pendiente cuenta como un intento: se
+        # reformula o se recuerda una vez y después no se insiste (D22, D31).
+        if anterior and self.pendiente == anterior and not reglas:
+            aviso = self._contar_intento(anterior)
+            registrado = any(h[k] for k in ("beneficio", "amenaza", "represalia", "afectacion", "exigencia",
+                                            "ofrecimiento", "nota_cuestionada"))
+            if registrado:
+                aviso = "Queda anotado en tu caso. " + (aviso or "")
+            if aviso:
+                self._nota = aviso.strip()
         return salida
+
+    def _contar_intento(self, regla: str) -> str | None:
+        """Respuesta que no es sí ni no. Devuelve el aviso que acompaña a la pregunta."""
+        self.intentos += 1
+        if self.intentos < 2:
+            # La aclaración se reformula; las decisiones (1,0) recuerdan que se puede decir que no.
+            return None if regla in REFORMULACION else REPREGUNTA
+        self.ficha.decisiones[regla] = "desconocido"
+        if regla == "B16":
+            self.ficha.peligro_actual = False
+        self._preguntar(None)
+        self._preguntar(self._pregunta_del_estado())
+        if regla == "C1":
+            return ("No pasa nada si no lo tienes claro. Puedo explicarte qué vías existen, o puedes "
+                    "contarme más cuando quieras.")
+        return "Sin respuesta por ahora; seguimos con lo que sabemos."
 
     def _resolver(self, respuesta: str, reglas: list[str]) -> dict[str, Any]:
         regla = self.pendiente
         if respuesta == "no_se":
-            self.intentos += 1
-            if self.intentos >= 2:
-                self.ficha.decisiones[regla] = "desconocido"
-                if regla == "B16":
-                    self.ficha.peligro_actual = False
-                self._preguntar(None)
-                self._preguntar(self._pregunta_del_estado())
-                if regla == "C1":
-                    self._nota = ("No pasa nada si no lo tienes claro. Puedo explicarte qué vías existen, o puedes "
-                                  "contarme más cuando quieras.")
-                    return self._resultado(reglas, None, None)
-                return self._resultado(reglas, None, None, aviso="Sin respuesta por ahora; seguimos con lo que sabemos.")
-            # La aclaración se reformula; las decisiones (1,0) recuerdan que se puede decir que no.
-            return self._resultado(reglas, None, None, aviso=None if regla in REFORMULACION else REPREGUNTA)
+            aviso = self._contar_intento(regla)
+            if regla == "C1" and aviso:
+                self._nota = aviso
+                return self._resultado(reglas, None, None)
+            return self._resultado(reglas, None, None, aviso=aviso)
         self.ficha.decisiones[regla] = respuesta
+        self._decidio_no = respuesta == "no"
         self._preguntar(None)
         if regla == "C1":
             if respuesta == "no":
@@ -551,7 +581,8 @@ class SesionAutomata:
         if consulta:
             partes.append(FAQ[consulta][0])
         movimiento = [r for r in reglas if r not in ("B1", "B2")]
-        decision_negativa = not reglas and any(v == "no" for v in f.decisiones.values()) and not aviso
+        # El «de acuerdo» acompaña solo al turno en que se respondió que no (D32).
+        decision_negativa = not reglas and self._decidio_no and not aviso
         if salida == "otro_tema":
             texto = (f"Lo que describes no muestra un intercambio de un beneficio por una ventaja académica. "
                      f"Corresponde al tema de {f.otro_tema}, que atiende otro módulo del equipo; aquí oriento solo "
@@ -596,8 +627,12 @@ class SesionAutomata:
             partes.append(self.texto_pregunta())
         texto = " ".join(partes)
         if texto == self._ultima and not reglas:
-            texto = ("Sigo esperando tu respuesta: " + self.texto_pregunta() if self.pendiente else
-                     "Sigo atento. Cuando quieras, cuéntame qué pasó o pregúntame por Primer Contacto.")
+            if self.pendiente:
+                texto = "Sigo esperando tu respuesta: " + self.texto_pregunta()
+            elif e in ("q0", "q1"):
+                texto = "Sigo atento. Cuando quieras, cuéntame qué pasó o pregúntame por Primer Contacto."
+            else:
+                texto = "Sigo atento. Si quieres, pregúntame por Primer Contacto o por los plazos de revisión."
         self._ultima = texto
         return texto
 

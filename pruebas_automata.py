@@ -169,5 +169,36 @@ class PruebasRegresionPruebaManual(unittest.TestCase):
         self.assertNotEqual(primera["respuesta"], segunda["respuesta"])
 
 
+class PruebasRegresionPruebaManual13Nov(unittest.TestCase):
+    """Escenario de prueba del 13 de noviembre de 2026: pago bajo presión, q2 → q6."""
+
+    PAGO = "Le di 500 pesos al profesor porque tenía miedo de reprobar la materia."
+
+    def test_si_alargado_responde_la_decision(self):
+        _, r = conversar(self.PAGO, "no se", "sii")
+        self.assertEqual((r["estado"], r["reglas"]), ("q6", ["B15"]))
+
+    def test_variantes_de_si_y_no(self):
+        for texto, esperado in (("siii", "si"), ("noo", "no"), ("sip", "si"), ("nel", "no"), ("ok", "si"),
+                                ("ok gracias", None), ("va a reprobarme", None)):
+            with self.subTest(texto=texto):
+                self.assertEqual(respuesta_si_no(texto), esperado)
+
+    def test_respuesta_no_reconocida_no_deja_la_respuesta_vacia_ni_insiste(self):
+        sesion, r = conversar(self.PAGO, "asdf")
+        self.assertEqual(r["pendiente"], "B15")
+        self.assertTrue(r["respuesta"].startswith("Para continuar necesito un sí o un no"))
+        r = sesion.procesar("asdf")
+        self.assertIsNone(r["pendiente"])
+        self.assertEqual(r["ficha"]["decisiones"]["B15"], "desconocido")
+
+    def test_un_no_a_b15_no_se_vuelve_a_preguntar(self):
+        sesion, r = conversar(self.PAGO, "no")
+        self.assertEqual((r["estado"], r["pendiente"]), ("q2", None))
+        r = sesion.procesar("ok gracias")
+        self.assertEqual(r["estado"], "q2")
+        self.assertNotIn("De acuerdo", r["respuesta"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
