@@ -616,6 +616,8 @@ def main() -> int:
         else:
             try:
                 mensaje = input("\nESTUDIANTE: ").strip()
+                if not sys.stdin.isatty():
+                    print(mensaje)  # con entrada redirigida, el mensaje queda en la transcripción
             except (EOFError, KeyboardInterrupt):
                 print("\nFin de la conversación.")
                 break

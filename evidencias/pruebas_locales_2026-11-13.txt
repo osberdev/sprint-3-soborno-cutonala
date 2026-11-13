@@ -1,0 +1,28 @@
+Evidencia: ejecución de todas las suites de pruebas
+Fecha: 13 de noviembre de 2026 · Rama automata-v2 · base del commit 68d2e8f
+Entorno: contenedor de Claude (Linux). Ninguna prueba llama a servicios externos.
+Comando: python3 herramientas/correr_pruebas.py
+
+== Entorno 1: Python sin dependencias opcionales (las pruebas de FAISS se omiten)
+Python 3.13.18 · Linux 6.18.44-fc-v445
+OK    pruebas_automata.py           50 pruebas · Autómata: tabla de transiciones, casos límite, nombres exactos, regresiones
+OK    escenarios_aceptacion.py       1 pruebas · Escenarios de aceptación aprobados (9.x y guion de prueba manual)
+OK    pruebas_conocimientos.py      14 pruebas · Base segmentada: fidelidad textual, exclusiones y recuperación por estado
+OK    pruebas_chatbot.py             8 pruebas · Chat en modo local
+OK    pruebas_gemini.py             24 pruebas · Gemini simulado: qué se envía, datos inventados, extractor y fallos
+OK    pruebas_persistencia.py        7 pruebas · Retomar un caso entre ejecuciones
+OK    pruebas_faiss_y_casos.py      14 pruebas, 5 omitidas · Registro de relatos y FAISS con embeddings ficticios
+
+Total: 118 pruebas, 5 omitidas, 0 suites con fallas.
+
+== Entorno 2: Python con google-genai 3.3.0, faiss-cpu 1.16.0 y numpy 2.5.4
+Python 3.13.18 · Linux 6.18.44-fc-v445
+OK    pruebas_automata.py           50 pruebas · Autómata: tabla de transiciones, casos límite, nombres exactos, regresiones
+OK    escenarios_aceptacion.py       1 pruebas · Escenarios de aceptación aprobados (9.x y guion de prueba manual)
+OK    pruebas_conocimientos.py      14 pruebas · Base segmentada: fidelidad textual, exclusiones y recuperación por estado
+OK    pruebas_chatbot.py             8 pruebas · Chat en modo local
+OK    pruebas_gemini.py             24 pruebas · Gemini simulado: qué se envía, datos inventados, extractor y fallos
+OK    pruebas_persistencia.py        7 pruebas · Retomar un caso entre ejecuciones
+OK    pruebas_faiss_y_casos.py      14 pruebas · Registro de relatos y FAISS con embeddings ficticios
+
+Total: 118 pruebas, 0 omitidas, 0 suites con fallas.

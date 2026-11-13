@@ -1,58 +1,71 @@
 # Sprint 3 personal — Soborno académico en CUTonalá
 
+Módulo individual del chatbot de orientación del equipo verde para *Metodologías del desarrollo ágil* (CUTonalá).
+
 ## Tema individual
 
-El proyecto aborda relatos de posible soborno académico: solicitudes u ofrecimientos de dinero, bienes u otros beneficios asociados con aprobar una materia u obtener una ventaja académica. El prototipo permite describir un caso ficticio o consultar la documentación reunida para orientar al estudiante. Distingue comentarios indirectos de relatos directos y contempla la continuidad de la conversación.
+El proyecto aborda relatos de posible soborno académico: solicitudes u ofrecimientos de dinero, bienes u otros beneficios asociados con aprobar una materia u obtener una ventaja académica. El chatbot orienta en tres niveles (personal, universitario y legal) con información de la investigación `Investigacion_soborno_CUTonala.docx`, contextualizada al CUTonalá y a Primer Contacto. No verifica los hechos ni determina responsabilidades.
 
-La investigación individual se organiza en los niveles personal, universitario y legal. El prototipo ofrece información preliminar con referencias; no verifica los hechos ni determina responsabilidades.
+La entrega es individual; los temas de los demás integrantes no se han integrado.
 
-## Alcance del avance que se entrega
-
-La entrega reúne código individual, documentación de los tres niveles y resultados reproducibles de consultas y pruebas locales. No se han integrado los temas de otros compañeros.
-
-Este repositorio se inicia con el trabajo ya existente. Su primer commit documenta la versión recopilada el 13 de octubre de 2026; no representa un historial de desarrollo de los días anteriores.
-
-## Estructura y funcionamiento
+## Cómo funciona
 
 ```text
 Mensaje del estudiante
-  -> reglas y estado del autómata
-  -> recuperación de apartados de la investigación
-  -> respuesta local o redacción con Gemini
-  -> fragmentos recuperados y enlaces de sus fuentes
+  -> autómata: reglas B1–B17 sobre la ficha del caso; decide la etapa (q0–q6, qS)
+  -> búsqueda en conocimientos/ (local o FAISS), filtrada por la etapa o por la pregunta informativa
+  -> respuesta local de la etapa, con el dato recuperado y sus fuentes
+  -> (opcional) Gemini la redacta; si menciona un dato que no está en lo enviado, se muestra la local
+  -> la pregunta de sí o no de la etapa, al final y textual
 ```
 
-| Archivo | Función |
-|---|---|
-| `chatbot_soborno.py` | Entrada del chat y búsqueda documental. |
-| `gemini_soborno.py` | Conexión opcional con Gemini: configuración única del modelo, redacción verificada contra el contexto y extractor de hechos con citas. |
-| `automata_soborno.py` | Autómata aprobado: estados q0–q6 y qS, reglas B1–B17, registro del caso y preguntas de sí o no. |
-| `sprint3_soborno.py` | Respuestas a las seis preguntas de Primer Contacto del Sprint 3 y demostración del autómata por consola. |
-| `conocimientos/*.md` (13 archivos) | La investigación segmentada por tema, transcrita sin cambios desde el `.docx`. |
-| `conocimientos/manifiesto.json` | Qué apartados contiene cada archivo, qué estados del autómata lo consultan y qué apartados se excluyen. |
-| `herramientas/segmentar_investigacion.py` | Regenera los archivos de conocimiento desde el `.docx` (`--verificar` solo comprueba). |
-| `conocimientos/primer_contacto_soborno.md` | Ficha institucional de una versión anterior; ningún módulo la consulta. |
-| `conocimientos/relatos_campus.md` | Relatos aportados sin nombres, con procedencia, datos faltantes y límites de uso, más el apartado 10.4 de la investigación. |
-| `conocimientos/casos_docentes.ejemplo.json` | Estructura vacía para registrar testimonios nominales por separado. |
-| `conocimientos_pdf/` | Dos PDF de una versión anterior (investigación y registro de relatos), para la base compartida del equipo; el módulo ya no los lee. |
-| `faiss_soborno.py` | Construcción y consulta opcional del índice FAISS individual desde `conocimientos/`. |
-| `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
-| `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
-| `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
-| `pruebas_chatbot.py` | Pruebas de integración del chat en modo local. |
-| `pruebas_persistencia.py` | Pruebas de la reanudación de un caso entre ejecuciones: mismo resultado que sin interrupción, sin texto de los mensajes en el archivo, datos inválidos rechazados. |
-| `pruebas_gemini.py` | Pruebas de la integración con Gemini mediante un servicio simulado: qué se envía, datos inventados, extractor y fallos. |
-| `pruebas_conocimientos.py` | Comprueba que los archivos de conocimiento coinciden textualmente con la investigación y que nada excluido llega al estudiante. |
-| `escenarios_aceptacion.py` | Criterios de aceptación del autómata nuevo (escenarios 9.1–9.10 y guion de prueba manual). |
-| `pruebas_automata.py` | Comprueba que la tabla de transiciones coincide con el diagrama aprobado y cubre casos límite. |
-| `pruebas_faiss_y_casos.py` | Nueve pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
-| `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
+El autómata decide; Gemini, si se activa, solo cambia la forma de decirlo. La decisión es la misma en todos los modos.
+
+### Estados
+
+| Estado | Fase | Instancia |
+|---|---|---|
+| q0 Inicial | 1/3 Comprender | — |
+| q1 Aclaración | 1/3 Comprender | — |
+| q2 Personal | 2/3 Orientar en CUTonalá | Unidad de Orientación Educativa · CAE, segundo piso |
+| q3 Primer Contacto | 2/3 Orientar en CUTonalá | Primer Contacto · CAE, primera puerta a la izquierda |
+| q4 Académica | 2/3 Orientar en CUTonalá | Coordinación de Ingeniería en Ciencias Computacionales → jefatura del departamento responsable de la materia |
+| q5 Autoridad externa | 3/3 Orientar fuera de la UdeG | Fiscalía Especializada en Combate a la Corrupción de Jalisco |
+| q6 Asesoría jurídica | 3/3 Orientar fuera de la UdeG | Procuraduría Social de Jalisco |
+| qS Seguridad | Interrupción | Servicios de emergencia o seguridad; intervención en crisis en el CAE |
+
+Las transiciones están en `TRANSICIONES` (`automata_soborno.py`) y una prueba exige que coincidan con el diagrama aprobado. Las decisiones del estudiante (B10, B14, B15) y las de seguridad (B16, B17) son preguntas de sí o no; una duda se repregunta una vez y después no se insiste. Al salir de Seguridad, el caso vuelve a q1 y recorre de nuevo las flechas que ya había tomado.
+
+Además, el autómata:
+
+- responde «No tengo información oficial…» a una pregunta que la investigación no contesta, sin abrir un caso;
+- responde una pregunta hipotética («¿y si…?») sin registrarla como hecho;
+- no cuenta un pago institucional ordinario (inscripción, colegiatura…) como participación en un intercambio;
+- remite a otro tema del equipo lo que no es soborno (acoso sexual, favoritismo sin beneficio, cuotas sin condicionamiento).
+
+## Modos de ejecución y qué sale del equipo
+
+| Comando | Qué hace | Qué se envía a un servicio externo |
+|---|---|---|
+| `python3 chatbot_soborno.py` | Conversación local; guarda el caso entre ejecuciones | Nada |
+| `--gemini` | Gemini redacta la orientación; se verifica contra lo enviado | Tarjeta del estado con hechos en frases neutras y fragmentos de la investigación. **No el texto de los mensajes** |
+| `--extractor-gemini` | Gemini detecta hechos de una lista cerrada, con cita textual | **El texto de cada mensaje** (salvo antecedentes y sí/no). Solo con relatos ficticios |
+| `--faiss` | Búsqueda vectorial sobre `conocimientos/` | Consulta armada con la etapa y los hechos neutros. **No el texto de los mensajes** |
+| `--reindexar-faiss` | Reconstruye el índice FAISS | Los fragmentos de la investigación |
+| `--demo`, `--pregunta "…"` | Conversación de ejemplo o un solo mensaje | Nada; no escriben en disco |
+| `--sin-guardar` | Desactiva el guardado del caso | — |
+
+Las peticiones a Gemini usan `store=False`, temperatura 0.2 y una espera máxima de 20 segundos; si fallan, se muestra la respuesta local y se informa del fallo. El modelo se configura en un solo lugar, `gemini_soborno.py` (`gemini-3.5-flash-lite` por defecto o la variable `GEMINI_MODEL`). La clave se carga en la terminal (`GEMINI_API_KEY`) y no forma parte del repositorio. La seudonimización de relatos no está aprobada.
 
 ### Retomar un caso entre ejecuciones
 
-En la conversación interactiva, el caso se guarda después de cada turno en `caso_guardado.local.json`, excluido de Git. El archivo contiene solo el estado del autómata, la pregunta pendiente, el camino recorrido y la ficha (indicadores como «hubo intercambio» o «amenaza académica» y las decisiones de sí o no); nunca el texto de los mensajes ni las respuestas. Al iniciar, si existe un caso guardado, el programa pregunta si se retoma: «sí» continúa donde se quedó, con la pregunta pendiente; «no» lo borra. Durante la conversación, `olvidar` o `reset` borran el archivo. `--sin-guardar` desactiva el guardado; `--demo` y `--pregunta` nunca escriben en disco. Un archivo dañado o alterado (estado, flecha o valor fuera del autómata) se ignora con un aviso.
+En la conversación interactiva, el caso se guarda después de cada turno en `caso_guardado.local.json`, excluido de Git. Contiene el estado del autómata, la pregunta pendiente, el camino recorrido y la ficha (indicadores como «hubo intercambio» o «amenaza académica» y las decisiones de sí o no); nunca el texto de los mensajes. Al iniciar, el programa pregunta si se retoma: «sí» continúa con la pregunta pendiente; «no» lo borra. `olvidar` o `reset` lo borran durante la conversación. Un archivo dañado o alterado se ignora con un aviso.
 
-El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional sobre los mismos archivos de `conocimientos/`. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
+## Base de conocimientos
+
+`conocimientos/` contiene la investigación segmentada en 13 archivos Markdown, generados con `herramientas/segmentar_investigacion.py` desde el `.docx` y comprobados palabra por palabra contra él. `manifiesto.json` indica qué apartados contiene cada archivo, qué estados lo consultan, qué apartados se excluyen (portada, escenarios del capítulo 9, capítulo 12 de diseño del prototipo, conclusiones) y qué texto de diseño no se indexa (`no_indexar`).
+
+Los textos escritos para el programa (orientación de cada estado, preguntas, respuestas informativas) usan los nombres completos de instituciones y normas tal como aparecen en la investigación. Una prueba extrae cada nombre del código y exige que exista en la investigación, y otra que cada referencia [S##] exista en `fuentes.json`.
 
 ### Relatos de clase sobre docentes identificados
 
@@ -92,6 +105,54 @@ La indexación requiere clave y conexión a Gemini para generar los embeddings (
 
 La reconstrucción conserva por separado cada grupo ya indexado. Si Gemini devuelve un límite temporal (429), espera el reintento automático; si la ejecución termina sin completar ambos grupos, vuelve a lanzar `--reindexar-faiss` cuando se restablezca la cuota.
 
+## Archivos
+
+| Archivo | Función |
+|---|---|
+| `chatbot_soborno.py` | Entrada del chat, búsqueda local, filtro por etapa o pregunta, caso guardado. |
+| `automata_soborno.py` | Autómata aprobado: estados, reglas B1–B17, ficha del caso, preguntas de sí o no, textos de orientación. |
+| `gemini_soborno.py` | Gemini: configuración única, redacción verificada contra el contexto, extractor de hechos con citas. |
+| `faiss_soborno.py` | Índice FAISS sobre `conocimientos/` con metadatos JSON. |
+| `sprint3_soborno.py` | Respuestas a las preguntas informativas sobre Primer Contacto (Sprint 3) y demostración del autómata por consola. |
+| `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
+| `conocimientos/` | Investigación segmentada, manifiesto, registro de relatos y ejemplo de registro nominal. `primer_contacto_soborno.md` es de una versión anterior y ningún módulo la consulta. |
+| `conocimientos_pdf/` | Dos PDF de una versión anterior, para la base compartida del equipo; el módulo ya no los lee. |
+| `herramientas/segmentar_investigacion.py` | Regenera `conocimientos/` desde el `.docx` (`--verificar` solo comprueba). |
+| `herramientas/correr_pruebas.py` | Ejecuta todas las suites y resume el resultado. |
+| `fuentes.json` | Identificadores de fuente y enlaces. |
+| `Investigacion_soborno_CUTonala.docx` | Investigación formal. |
+| `docs/registro_defectos.md` | Registro de defectos D01–D56, defectos del diagrama G01–G06, riesgos y seguimiento por iteración. |
+| `evidencias/` | Ejecuciones de pruebas, conversaciones y resumen de las pruebas manuales. |
+
+## Pruebas
+
+Con Python 3.10 o posterior, desde esta carpeta:
+
+```bash
+python3 herramientas/correr_pruebas.py
+```
+
+| Suite | Pruebas | Qué comprueba |
+|---|---|---|
+| `pruebas_automata.py` | 50 | Tabla de transiciones contra el diagrama, casos límite, regresiones de las pruebas manuales, nombres exactos |
+| `escenarios_aceptacion.py` | 1 (21 escenarios) | Escenarios de aceptación aprobados: 9.x de la investigación y guion de prueba manual |
+| `pruebas_conocimientos.py` | 14 | Fidelidad textual con el `.docx`, exclusiones, recuperación por etapa, extractos sin repetición |
+| `pruebas_chatbot.py` | 8 | Chat en modo local |
+| `pruebas_gemini.py` | 24 | Qué se envía a Gemini, siete datos inventados que regresan a la respuesta local, eco de instrucciones, extractor con citas, fallos |
+| `pruebas_persistencia.py` | 7 | Retomar un caso da el mismo resultado; el archivo no contiene mensajes; datos alterados se rechazan |
+| `pruebas_faiss_y_casos.py` | 14 | Registro de relatos; FAISS real con embeddings ficticios (se omiten 5 sin `faiss-cpu`) |
+
+Ninguna prueba llama a servicios externos. `python3 chatbot_soborno.py --demo` reproduce una conversación de ejemplo.
+
+## Evidencias
+
+- `evidencias/pruebas_locales_2026-11-13.txt`: las 118 pruebas, en un Python sin dependencias opcionales y en otro con `google-genai`, `faiss-cpu` y `numpy`.
+- `evidencias/conversacion_local_2026-11-13.txt`: conversación reproducible que recorre B1, pregunta sin dato, q2, q6, antecedentes, Seguridad y retorno, hipótesis, causa benéfica e insinuación.
+- `evidencias/pruebas_manuales_2026-11-12_13.md`: resumen de las sesiones manuales del autor en modo local, Gemini y FAISS, y los defectos que encontró cada una.
+- `evidencias/*_2026-10-13.txt`, `consulta_gemini_01.txt` y `entorno_gemini.txt`: versión anterior al autómata actual (13 de octubre de 2026); se conservan como historial.
+
+Estos resultados comprueban el comportamiento del programa en casos concretos; no certifican la precisión jurídica del contenido ni el reconocimiento de cualquier redacción.
+
 ## Documentación de los tres niveles
 
 Los tres niveles están contenidos en la investigación Word y en su versión de texto:
@@ -104,54 +165,12 @@ Los tres niveles están contenidos en la investigación Word y en su versión de
 
 Se adjunta la investigación existente; esta preparación de evidencias no constituye una nueva verificación de sus contactos, plazos o fuentes. El capítulo 8 relaciona los niveles y el capítulo 12 describe su aplicación al prototipo.
 
-## Cómo reproducir las pruebas locales
-
-Con Python 3.10 o posterior, desde esta carpeta:
-
-```bash
-python3 pruebas_chatbot.py
-python3 pruebas_gemini.py
-python3 pruebas_persistencia.py
-python3 pruebas_faiss_y_casos.py
-python3 pruebas_conocimientos.py
-python3 pruebas_automata.py
-python3 escenarios_aceptacion.py
-python3 chatbot_soborno.py --demo
-python3 chatbot_soborno.py
-```
-
-La primera instrucción ejecuta las pruebas automatizadas; la segunda reproduce consultas ficticias; la tercera abre una conversación. Usa `reset` para otro caso y `salir` para cerrar.
-
-## Evidencias disponibles
-
-- `evidencias/pruebas_locales_2026-10-13.txt`: siete pruebas ejecutadas y aprobadas. Comprueban recuperación del directorio, selección documental, tratamiento de comentarios indirectos, memoria ante represalia académica, diferenciación de amenaza física, referencias y preparación de la solicitud a Gemini mediante un cliente simulado.
-- `evidencias/consultas_locales_2026-10-13.txt`: interacción ejecutada con consulta institucional, comentario indirecto, reinicio y un relato directo seguido de una posible represalia académica. Incluye respuestas, estados y fragmentos recuperados.
-- `evidencias/consulta_gemini_01.txt`: consulta real ejecutada por el usuario el 13 de octubre de 2026 desde Ubuntu, sobre una solicitud de dinero para aprobar. La salida, anterior al autómata actual, muestra `Gemini + autómata + documentos`, estado `{'x': 4, 'y': 3}`, prioridad `prioritaria` y recuperación de los apartados 5.1, 7.3 y 4.2. Se verificó que el archivo contiene la respuesta y las referencias. Esta consulta aislada no prueba la continuidad de una conversación con Gemini.
-
-Estos resultados comprueban comportamientos de software en casos concretos; no certifican la precisión jurídica del contenido ni el reconocimiento de cualquier redacción posible.
-
-## Gemini y pendientes de esta entrega
-
-Existe una integración opcional con Gemini. El 13 de octubre de 2026 se registró una consulta real satisfactoria en `evidencias/consulta_gemini_01.txt`. La respuesta identifica las tres vías de orientación, evita determinar responsabilidad y solicita información adicional. Esta revisión confirma el funcionamiento observado; no constituye una validación jurídica independiente de la respuesta. En pruebas anteriores también se observó un fallo del servicio con respuesta local de respaldo.
-
-Para usar la integración se necesita `google-genai` 3.3 o posterior (`requirements-gemini.txt`) y una clave en la variable de entorno `GEMINI_API_KEY`. La clave se carga únicamente en la terminal del usuario y no forma parte del repositorio.
-
-Desde la iteración 4 (13 de noviembre de 2026) Gemini participa de dos formas independientes:
-
-| Opción | Qué envía | Qué hace | Si falla o inventa |
-|---|---|---|---|
-| `--gemini` | Una tarjeta del estado (etapa, instancia, hechos del caso en frases neutras, orientación local) y los fragmentos recuperados. **No envía el texto de los mensajes ni el historial.** | Redacta la orientación. El autómata ya decidió la etapa; la pregunta de sí o no se añade después, textual. | Si la redacción contiene un correo, enlace, cifra, plazo o instancia que no está en lo enviado, se muestra la respuesta local y se indica «REDACCIÓN DE GEMINI NO FUNDAMENTADA». |
-| `--extractor-gemini` | El texto de cada mensaje, salvo consultas de antecedentes y respuestas de sí o no. | Señala hechos de una lista cerrada, cada uno con una cita textual del mensaje. Solo se suman a los de las reglas locales; nunca los quitan. | Un hecho sin cita comprobable se descarta. Si el servicio falla, el turno se evalúa con las reglas locales. |
-
-La seudonimización no está aprobada; por eso `--extractor-gemini` se usa solo con relatos ficticios. Ambas peticiones usan `store=False`, temperatura 0.2 y una espera máxima de 12 segundos. El modelo se configura en un solo lugar, `gemini_soborno.py` (`gemini-3.5-flash-lite` por defecto, o la variable `GEMINI_MODEL`).
-
-Entorno registrado para la prueba del 13 de octubre: `google-genai 2.29.0`, según `evidencias/entorno_gemini.txt`. Esa versión es anterior a la integración actual.
-
-Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Su visibilidad se comprobó como pública el 29 de octubre de 2026.
-
 ## Límites de la versión
 
-- El reconocimiento depende de reglas y coincidencias de palabras; necesita pruebas adicionales con otras redacciones.
+- El reconocimiento depende de reglas y vocabulario; el extractor de Gemini amplía la cobertura, pero solo con relatos ficticios mientras la seudonimización no esté aprobada.
+- Una pregunta en presente («¿qué hago si me pide dinero?») se trata como relato, no como hipótesis.
+- La verificación de la redacción de Gemini comprueba datos concretos (correos, enlaces, cifras, plazos e instancias); no el sentido de cada afirmación.
+- La calidad del orden en FAISS depende de la consulta armada con la etapa; los apartados prioritarios de cada etapa se fijan igual que en el modo local.
 - No tiene interfaz gráfica, folio ni envío de denuncias. El caso guardado es local y de una sola persona; no es un expediente.
-- La verificación de la redacción de Gemini comprueba datos concretos (correos, enlaces, cifras, plazos e instancias); no comprueba el sentido de cada afirmación.
-- Para las pruebas se utilizan relatos ficticios sin identificar personas reales.
+
+Repositorio: https://github.com/osberdev/sprint-3-soborno-cutonala (público).

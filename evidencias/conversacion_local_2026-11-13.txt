@@ -1,0 +1,197 @@
+Evidencia: conversación local reproducible (sin Gemini ni FAISS; relatos ficticios)
+Fecha: 13 de noviembre de 2026 · Rama automata-v2
+Comando: printf '<mensajes>' | python3 chatbot_soborno.py --sin-guardar
+Recorre: pregunta informativa (B1), pregunta sin dato, relato con pago bajo presión (q2, B15), duda sin insistencia,
+asesoría jurídica (q6), consulta de antecedentes (B2), peligro actual (qS), salida de Seguridad que retoma el caso,
+y, tras reiniciar, una hipótesis, un pago condicionado presentado como causa benéfica y una insinuación.
+
+Chatbot individual · soborno académico · CUTonalá
+Usa relatos ficticios. Escribe 'reset' para reiniciar o 'salir' para terminar.
+
+ESTUDIANTE: ¿Quién es la encargada de Primer Contacto?
+
+RESPUESTA: El directorio de Secretaría Académica identifica a Blanca Elizabeth González Jauregui como encargada del despacho de Primer Contacto. El directorio central de la Unidad para la Igualdad también incluye a Valeria Rubí González Orizaba. La investigación no probó llamadas ni disponibilidad presencial.
+MODO: Local + autómata + documentos
+AUTÓMATA: q0 · Inicial | fase 1/3 Comprender | prioridad: informativa
+REGLAS: B1 Pregunta informativa
+FRAGMENTOS CONSULTADOS:
+  · 6.2 Atención en CUTonalá: Primer Contacto. El directorio de Secretaría Académica identifica a Blanca Elizabeth González Jauregui como encargada del despacho. Publica primercontacto@cutonala.udg.mx y ubicación en CAE. El directorio central de la Unidad para…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S05] https://cutonala.udg.mx/primercontacto
+  [S06] https://cutonala.udg.mx/acerca/directorio/secretaria-academica
+  [S08] https://igualdad.udg.mx/primeroscontactos
+
+ESTUDIANTE: ¿Atienden los sábados?
+
+RESPUESTA: No tengo información oficial sobre eso en la investigación. Puedes confirmarlo con Primer Contacto: primercontacto@cutonala.udg.mx.
+MODO: Local + autómata + documentos
+AUTÓMATA: q0 · Inicial | fase 1/3 Comprender | prioridad: informativa
+
+ESTUDIANTE: Le di 500 pesos al profesor porque tenía miedo de reprobar la materia.
+
+RESPUESTA: Lo primero es tu bienestar. La Unidad de Orientación Educativa de CUTonalá publica atención presencial y virtual, orientación psicológica e intervención en crisis; el apoyo presencial en crisis está en el segundo piso del CAE, subiendo las escaleras a la izquierda. Si lo deseas, puedes solicitar acompañamiento de alguien de confianza. También puede aplicar: denuncia universitaria (Primer Contacto canaliza).
+Dato recuperado de «4.3 Bienestar y continuidad escolar»: La Unidad de Orientación Educativa de CUTonalá publica atención presencial y virtual, orientación psicológica e intervención en crisis. Su página indica iniciar la solicitud mediante un formulario, esperar confirmación y completar una entrevista en SIGA. [S10]
+¿Quieres orientación sobre asesoría jurídica independiente para tu propia situación antes de una declaración formal? Responde sí o no.
+MODO: Local + autómata + documentos
+AUTÓMATA: q2 · Personal | fase 2/3 Orientar en CUTonalá | prioridad: prioritaria
+REGLAS: B3 Relata un caso, B6 Afectación personal
+VÍAS CONCURRENTES: denuncia universitaria (Primer Contacto canaliza)
+ESPERA RESPUESTA: B15 (sí / no)
+FRAGMENTOS CONSULTADOS:
+  · 4.3 Bienestar y continuidad escolar: La Unidad de Orientación Educativa de CUTonalá publica atención presencial y virtual, orientación psicológica e intervención en crisis. Su página indica iniciar la solicitud mediante un formulario, esperar confirmación y completar…
+  · 8.3 Regla para evitar una escalera obligatoria: El nivel personal atiende bienestar, comprensión y organización. El nivel universitario atiende evaluación, disciplina y derechos en la institución. El nivel legal atiende posibles responsabilidades y protección fuera de ella. La …
+  · 4.1 Primeras decisiones: La primera intervención debe aclarar si existe un riesgo inmediato, una fecha académica próxima o una necesidad de apoyo. Si hay peligro actual, la prioridad es alejarse de una situación insegura y acudir a los servicios de emerge…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S10] https://cutonala.udg.mx/serviciosalacomunidadcut/que-es-la-unidad-de-orientacion-educativa
+  [S04] https://secgral.udg.mx/sites/default/files/Normatividad_general/rgepa-oct-2017.pdf
+
+ESTUDIANTE: no sé
+
+RESPUESTA: Para continuar necesito un sí o un no. Si prefieres no decidir ahora, también está bien: dime «no».
+¿Quieres orientación sobre asesoría jurídica independiente para tu propia situación antes de una declaración formal? Responde sí o no.
+MODO: Local + autómata + documentos
+AUTÓMATA: q2 · Personal | fase 2/3 Orientar en CUTonalá | prioridad: prioritaria
+VÍAS CONCURRENTES: denuncia universitaria (Primer Contacto canaliza)
+ESPERA RESPUESTA: B15 (sí / no)
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S10] https://cutonala.udg.mx/serviciosalacomunidadcut/que-es-la-unidad-de-orientacion-educativa
+
+ESTUDIANTE: sí
+
+RESPUESTA: Si temes responsabilidad por haber ofrecido o entregado el beneficio, necesitas asesoría independiente sobre tus derechos y obligaciones antes de una declaración formal. La Procuraduría Social de Jalisco publica orientación jurídica gratuita en su ficha de servicios jurídicos asistenciales (33 3030 2900); el servicio concreto debe confirmarse. La ausencia de garantía de inmunidad no justifica ocultar, destruir o fabricar información. También puede aplicar: apoyo personal (Unidad de Orientación Educativa).
+Dato recuperado de «6.3 Instancias centrales y externas»: La revisión no confirmó un consultorio jurídico de CUTonalá con una oferta pública específica, vigente y suficiente de representación en denuncias por soborno. La existencia de la carrera de Abogado no permite afirmar por sí sola que exista ese servicio.
+MODO: Local + autómata + documentos
+AUTÓMATA: q6 · Asesoría jurídica | fase 3/3 Orientar fuera de la UdeG | prioridad: prioritaria
+REGLAS: B15 Participación propia (1,0)
+VÍAS CONCURRENTES: apoyo personal (Unidad de Orientación Educativa)
+FRAGMENTOS CONSULTADOS:
+  · 7.5 Protección, participación y seguimiento: Si una persona teme responsabilidad por haber ofrecido o entregado el beneficio, necesita asesoría independiente sobre sus derechos y obligaciones antes de una declaración formal. La ausencia de garantía de inmunidad no justifica …
+  · 6.3 Instancias centrales y externas: La revisión no confirmó un consultorio jurídico de CUTonalá con una oferta pública específica, vigente y suficiente de representación en denuncias por soborno. La existencia de la carrera de Abogado no permite afirmar por sí sola …
+  · 8.1 Tres dimensiones separadas: La gravedad jurídica no la fija este proyecto. El artículo 24 del reglamento universitario contempla factores de individualización y supuestos de gravedad, entre ellos dolo, reincidencia y otras condiciones. La reincidencia tiene …
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+  [S12] https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf
+  [S18] https://info.jalisco.gob.mx/gobierno/programas-apoyo/modalidad/21977
+
+ESTUDIANTE: ¿Hay profesores acusados de pedir dinero?
+
+RESPUESTA: En este módulo constan dos relatos estudiantiles: uno sobre dinero presuntamente condicionado a una calificación y otro sobre un obsequio presuntamente ligado a acreditar. Los archivos aportados no vinculan ninguno con un nombre; su origen es indirecto y no están corroborados. Un testimonio identificado puede incorporarse con su procedencia y estado sin esperar una resolución oficial.
+MODO: Local + registro de relatos
+CONSULTA DE ANTECEDENTES: no cambia tu caso.
+REGISTRO DE RELATOS CONSULTADO: C01, C02
+
+ESTUDIANTE: Ahora mismo está afuera del salón esperándome.
+
+RESPUESTA: Tu seguridad es lo primero. Si hay peligro actual, la prioridad es alejarte de la situación insegura y acudir a los servicios de emergencia o seguridad disponibles. En CUTonalá, la Unidad de Orientación Educativa ubica la intervención en crisis en el segundo piso del CAE.
+Dato recuperado de «5.5 Medidas de protección y represalias»: Los artículos 39–46 regulan medidas cautelares. Entre las posibilidades se incluyen evitar contacto, prevenir intimidaciones o acciones adversas, proteger información, conservar elementos y establecer ajustes de grupo u horario. [S01]
+MODO: Local + autómata + documentos
+AUTÓMATA: qS · Seguridad | fase Interrupción | prioridad: urgente
+REGLAS: B16 Peligro actual
+VÍAS CONCURRENTES: apoyo personal (Unidad de Orientación Educativa)
+FRAGMENTOS CONSULTADOS:
+  · 5.5 Medidas de protección y represalias: Los artículos 39–46 regulan medidas cautelares. Entre las posibilidades se incluyen evitar contacto, prevenir intimidaciones o acciones adversas, proteger información, conservar elementos y establecer ajustes de grupo u horario. E…
+  · 4.1 Primeras decisiones: La primera intervención debe aclarar si existe un riesgo inmediato, una fecha académica próxima o una necesidad de apoyo. Si hay peligro actual, la prioridad es alejarse de una situación insegura y acudir a los servicios de emerge…
+  · 5.2 Alcance de Primer Contacto: La página de Primer Contacto de CUTonalá presenta sus funciones dentro de la prevención y atención de violencia. Describe acompañamiento, valoración de riesgo, apoyo emocional, recepción y canalización. El reglamento también regul…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+  [S04] https://secgral.udg.mx/sites/default/files/Normatividad_general/rgepa-oct-2017.pdf
+  [S05] https://cutonala.udg.mx/primercontacto
+  [S10] https://cutonala.udg.mx/serviciosalacomunidadcut/que-es-la-unidad-de-orientacion-educativa
+
+ESTUDIANTE: Ya estoy a salvo.
+
+RESPUESTA: Me alegra que estés a salvo. Retomamos tu caso donde lo dejamos: Asesoría jurídica (Procuraduría Social de Jalisco). Lo que me contaste sigue registrado.
+MODO: Local + autómata + documentos
+AUTÓMATA: q6 · Asesoría jurídica | fase 3/3 Orientar fuera de la UdeG | prioridad: prioritaria
+REGLAS: B17 A salvo, B6 Afectación personal, B15 Participación propia (1,0)
+VÍAS CONCURRENTES: apoyo personal (Unidad de Orientación Educativa)
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S12] https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf
+  [S18] https://info.jalisco.gob.mx/gobierno/programas-apoyo/modalidad/21977
+
+ESTUDIANTE: reset
+Caso reiniciado; la base de conocimientos sigue disponible.
+
+ESTUDIANTE: ¿Y si un profe me pide dinero para pasar?
+
+RESPUESTA: Como lo planteas en hipótesis, no lo registro como un hecho de tu caso. Cuando el posible soborno se acompaña de amenazas, intimidación o afectaciones al bienestar, la relación con Primer Contacto es más directa. El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla la exigencia o recepción de dinero o bienes para conceder ventajas académicas y el ofrecimiento, promesa o entrega de beneficios indebidos para obtenerlas. Para un soborno sin violencia resulta razonable pedir orientación y confirmación del canal de recepción; también existe la presentación ante las autoridades previstas en el artículo 51. Si llega a ocurrir, cuéntamelo y lo incorporo.
+MODO: Local + autómata + documentos
+AUTÓMATA: q0 · Inicial | fase 1/3 Comprender | prioridad: informativa
+
+ESTUDIANTE: El profesor me pidió 100 pesos para pasar la materia, supuestamente para darle de comer a los perritos.
+
+RESPUESTA: Primer Contacto está al entrar al CAE, primera puerta a la izquierda (primercontacto@cutonala.udg.mx). Su página describe acompañamiento, valoración de riesgo, apoyo emocional, recepción y canalización. La denuncia universitaria la reciben, conforme a su competencia, las secretarías de división y la Secretaría Académica del centro. Conserva los mensajes completos, sin alterarlos ni difundirlos, y anota fecha, materia, el beneficio solicitado u ofrecido y la ventaja académica mencionada. Para analizar una aportación destinada a terceros importa la relación entre el beneficio solicitado y el ejercicio de la función. Una causa benéfica no autoriza cambiar los criterios de acreditación.
+Dato recuperado de «5.1 Fundamento y distribución de funciones»: El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla tanto la exigencia o recepción de dinero o bienes para conceder ventajas académicas como el ofrecimiento, promesa o entrega de beneficios indebidos para obtenerlas. Esta base permite analizar el problema dentro de la disciplina universitaria, aun cuando no se describa violencia de… [S01]
+¿Quieres orientación para acudir a la autoridad externa, la Fiscalía Especializada en Combate a la Corrupción de Jalisco? Responde sí o no.
+MODO: Local + autómata + documentos
+AUTÓMATA: q3 · Primer Contacto | fase 2/3 Orientar en CUTonalá | prioridad: prioritaria
+REGLAS: B3 Relata un caso, B7 Exigencia u ofrecimiento
+ESPERA RESPUESTA: B14 (sí / no)
+FRAGMENTOS CONSULTADOS:
+  · 5.1 Fundamento y distribución de funciones: El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla tanto la exigencia o recepción de dinero o bienes para conceder ventajas académicas como el o…
+  · 7.3 Cuándo es insuficiente limitarse a la universidad: Se recomienda valoración legal temprana cuando se describe una solicitud, promesa o entrega de beneficio ligada a una función pública; cuando aparecen amenazas o coacción; cuando existen represalias relevantes; o cuando la persona…
+  · 14.1 Ficha mínima de orientación: 1. Identificador interno y fecha de orientación. No denominarlo folio institucional. 2. Tema y narración breve en palabras de la persona. 3. Procedencia del relato: experiencia directa, testimonio de tercero o comentario indirecto…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+  [S12] https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf
+  [S16] https://www.diputados.gob.mx/LeyesBiblio/pdf/CNPP.pdf
+  [S05] https://cutonala.udg.mx/primercontacto
+  [S06] https://cutonala.udg.mx/acerca/directorio/secretaria-academica
+
+ESTUDIANTE: sí
+
+RESPUESTA: La Fiscalía Especializada en Combate a la Corrupción de Jalisco publica una página de denuncia con narración de hechos, adjuntos y datos opcionales, y ofrece formatos para denuncia anónima y con datos personales. No es necesario que primero termine un expediente universitario. La autoridad investigadora establece la adecuación de los hechos a la norma; una denuncia no equivale a condena. Para analizar una aportación destinada a terceros importa la relación entre el beneficio solicitado y el ejercicio de la función. Una causa benéfica no autoriza cambiar los criterios de acreditación.
+Dato recuperado de «7.3 Cuándo es insuficiente limitarse a la universidad»: Se recomienda valoración legal temprana cuando se describe una solicitud, promesa o entrega de beneficio ligada a una función pública; cuando aparecen amenazas o coacción; cuando existen represalias relevantes; o cuando la persona necesita conocer las consecuencias de su propia participación. No es necesario fijar una cantidad mínima, esperar reiteración ni exigir que primero termine un expediente universitario. [S01, S12, S16]
+MODO: Local + autómata + documentos
+AUTÓMATA: q5 · Autoridad externa | fase 3/3 Orientar fuera de la UdeG | prioridad: prioritaria
+REGLAS: B14 Acude a autoridad externa (1,0)
+FRAGMENTOS CONSULTADOS:
+  · 7.3 Cuándo es insuficiente limitarse a la universidad: Se recomienda valoración legal temprana cuando se describe una solicitud, promesa o entrega de beneficio ligada a una función pública; cuando aparecen amenazas o coacción; cuando existen represalias relevantes; o cuando la persona…
+  · 7.1 Por qué puede intervenir una autoridad externa: En el caso concreto deben verificarse nombramiento, funciones, participación, beneficio y relación con el ejercicio del cargo. Ser estudiante, compañero o intermediario no convierte automáticamente a una persona en servidor públic…
+  · 7.4 Presentación de información ante Fiscalía: El Código Nacional de Procedimientos Penales regula la denuncia oral, escrita o por otros medios y la recepción por el Ministerio Público o la policía, con los requisitos y excepciones correspondientes. Es útil llevar una narració…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+  [S12] https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf
+  [S16] https://www.diputados.gob.mx/LeyesBiblio/pdf/CNPP.pdf
+  [S13] https://congresoweb.congresojal.gob.mx/BibliotecaVirtual/legislacion/C%C3%B3digos/Documentos_PDF-C%C3%B3digos/C%C3%B3digo%20Penal%20para%20el%20Estado%20Libre%20y%20Soberano%20de%20Jalisco%20-240926.pdf
+  [S17] https://fiscaliaanticorrupcion.jalisco.gob.mx/denuncia
+
+ESTUDIANTE: reset
+Caso reiniciado; la base de conocimientos sigue disponible.
+
+ESTUDIANTE: El profe insinuó que un regalito ayudaría con la nota.
+
+RESPUESTA: Una insinuación puede ser relevante, pero falta saber si hubo una condición concreta.
+¿Te pidió algo concreto o condicionó la calificación a algo? Responde sí o no.
+MODO: Local + autómata + documentos
+AUTÓMATA: q1 · Aclaración | fase 1/3 Comprender | prioridad: informativa
+REGLAS: B3 Relata un caso, B4 Indirecto o implícito
+ESPERA RESPUESTA: C1 (sí / no)
+FRAGMENTOS CONSULTADOS:
+  · 14.1 Ficha mínima de orientación: 1. Identificador interno y fecha de orientación. No denominarlo folio institucional. 2. Tema y narración breve en palabras de la persona. 3. Procedencia del relato: experiencia directa, testimonio de tercero o comentario indirecto…
+  · 2.1 Relatos que motivan la investigación: La repetición de un relato entre generaciones merece atención como fenómeno de comunicación estudiantil. Sin embargo, varias personas pueden estar reproduciendo una misma historia. La investigación debe separar experiencia directa…
+  · 4.1 Primeras decisiones: Se propone que la persona describa qué ocurrió con sus propias palabras: quién pidió u ofreció qué, qué ventaja se mencionó, cuándo sucedió y si existen mensajes, testigos o documentos. Debe poder responder que no sabe o que sólo …
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+
+ESTUDIANTE: sí
+
+RESPUESTA: Primer Contacto está al entrar al CAE, primera puerta a la izquierda (primercontacto@cutonala.udg.mx). Su página describe acompañamiento, valoración de riesgo, apoyo emocional, recepción y canalización. La denuncia universitaria la reciben, conforme a su competencia, las secretarías de división y la Secretaría Académica del centro. Conserva los mensajes completos, sin alterarlos ni difundirlos, y anota fecha, materia, el beneficio solicitado u ofrecido y la ventaja académica mencionada.
+Dato recuperado de «5.1 Fundamento y distribución de funciones»: El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla tanto la exigencia o recepción de dinero o bienes para conceder ventajas académicas como el ofrecimiento, promesa o entrega de beneficios indebidos para obtenerlas. Esta base permite analizar el problema dentro de la disciplina universitaria, aun cuando no se describa violencia de… [S01]
+¿Quieres orientación para acudir a la autoridad externa, la Fiscalía Especializada en Combate a la Corrupción de Jalisco? Responde sí o no.
+MODO: Local + autómata + documentos
+AUTÓMATA: q3 · Primer Contacto | fase 2/3 Orientar en CUTonalá | prioridad: prioritaria
+REGLAS: B7 Exigencia u ofrecimiento
+ESPERA RESPUESTA: B14 (sí / no)
+FRAGMENTOS CONSULTADOS:
+  · 5.1 Fundamento y distribución de funciones: El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria contempla tanto la exigencia o recepción de dinero o bienes para conceder ventajas académicas como el o…
+  · 7.3 Cuándo es insuficiente limitarse a la universidad: Se recomienda valoración legal temprana cuando se describe una solicitud, promesa o entrega de beneficio ligada a una función pública; cuando aparecen amenazas o coacción; cuando existen represalias relevantes; o cuando la persona…
+  · 14.1 Ficha mínima de orientación: 1. Identificador interno y fecha de orientación. No denominarlo folio institucional. 2. Tema y narración breve en palabras de la persona. 3. Procedencia del relato: experiencia directa, testimonio de tercero o comentario indirecto…
+FUENTES PÚBLICAS CITADAS EN LA INVESTIGACIÓN:
+  [S01] https://secgral.udg.mx/sites/default/files/Normatividad_general/RRVFNU%20%28Junio%202022%29.pdf
+  [S12] https://www.diputados.gob.mx/LeyesBiblio/pdf/LGRA.pdf
+  [S16] https://www.diputados.gob.mx/LeyesBiblio/pdf/CNPP.pdf
+  [S05] https://cutonala.udg.mx/primercontacto
+  [S06] https://cutonala.udg.mx/acerca/directorio/secretaria-academica
+
+ESTUDIANTE: salir

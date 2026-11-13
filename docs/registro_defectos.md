@@ -4,6 +4,7 @@
 **Fecha de registro:** 12 de noviembre de 2026
 **Referencia de diseño:** autómata conceptual aprobado (estados q0–q6 y qS; reglas B1–B17)
 **Corrección prevista:** durante la implementación del autómata nuevo
+**Estado al cierre (13 de noviembre de 2026, iteración 7):** D01–D56 corregidos, cada uno con su prueba de regresión salvo D10 (documentación), cerrado al reescribir el README. G01–G06 se corrigen en la implementación, no en la imagen. R01 sigue abierto por decisión: la seudonimización no está aprobada y el extractor de Gemini se usa solo con relatos ficticios.
 
 ## Fuentes de evidencia
 
@@ -75,6 +76,7 @@
 | 4 · Gemini | D07, D08, D19, D38–D46, D48–D50; extractor verificado con el servicio real (13 nov 2026); D10 en la configuración del modelo y la versión de `google-genai` (el conteo de pruebas del README queda para la iteración 7) | `pruebas_gemini.py`: qué se envía, instrucción en positivo, siete datos inventados que regresan a la respuesta local, pregunta informativa trampa, extractor con citas y fallos del servicio |
 | 5 · Persistencia | D42, D47, D52 (autómata); reanudación de un caso entre ejecuciones | `pruebas_persistencia.py` (mismo resultado con y sin interrupción, sin texto de mensajes en el archivo, ocho alteraciones rechazadas, retomar o borrar al iniciar) y `PruebasHipotesisYPagos` |
 | 6 · FAISS sobre `conocimientos/` | D34, D55, D56; índice verificado con embeddings reales (97 + 8 vectores) | `pruebas_faiss_y_casos.py` con un índice FAISS real y embeddings ficticios: filtro por pregunta y por estado, sin texto del estudiante en las consultas, reindexación obligatoria si cambia la base |
+| 7 · Cierre | D10 (README reescrito: modos, privacidad, conteo real de pruebas, versión de `google-genai`) | `herramientas/correr_pruebas.py`: 118 pruebas; evidencias del 13 de noviembre en `evidencias/` |
 
 Los defectos G01–G06 del diagrama no se corrigen en la imagen: la implementación sigue el autómata aprobado (q6 Asesoría jurídica, q5 Autoridad externa, aceptación en q2–q6, lazo B8 en q3, B10 con (1,0)).
 
