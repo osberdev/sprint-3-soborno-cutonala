@@ -63,6 +63,14 @@ class PruebasConocimientos(unittest.TestCase):
         self.assertEqual(sin_novedad["fragmentos"], [])
         self.assertNotIn("Dato recuperado", sin_novedad["respuesta_chatbot"])
 
+    def test_retomar_el_caso_tras_seguridad_no_agrega_extracto(self):
+        chat = ChatSoborno()
+        for mensaje in ("Le di 500 pesos al profesor porque tenía miedo de reprobar la materia.", "sí",
+                        "Ahora mismo está afuera del salón esperándome."):
+            chat.responder(mensaje)
+        respuesta = chat.responder("Ya estoy a salvo.")
+        self.assertNotIn("Dato recuperado", respuesta["respuesta_chatbot"])
+
     def test_listas_se_recuperan_completas(self):
         ficha = [f for f in Buscador().fragmentos if f["apartado"] == "14.1" and f["texto"].startswith("1.")]
         self.assertEqual(len(ficha), 1)

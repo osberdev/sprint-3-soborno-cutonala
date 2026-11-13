@@ -347,11 +347,36 @@ class SesionAutomata:
         self._nota: str | None = None   # texto que solo corresponde al turno actual
         self._ultima: str | None = None  # última respuesta, para no repetirla literalmente
         self._decidio_no = False          # se respondió «no» a una decisión en este turno
+        # Flechas que llevaron el caso desde q1 hasta su estado actual (sin lazos ni qS).
+        # Al salir de Seguridad, B17 entra a q1 y el caso recorre de nuevo este camino (D33).
+        self.camino: list[str] = []
 
     # -- utilidades -------------------------------------------------------
     def _mover(self, regla: str, reglas: list[str]) -> None:
-        self.estado = destino(regla, self.estado)
+        origen = self.estado
+        self.estado = destino(regla, origen)
         reglas.append(regla)
+        if regla == "B3":
+            self.camino = []
+        elif origen != "qS" and regla != "B16" and self.estado != origen:
+            self.camino.append(regla)
+
+    def _salir_de_seguridad(self, reglas: list[str]) -> None:
+        """B17 lleva a q1, como marca el diagrama, y en el mismo turno el caso retoma las
+        flechas que ya había recorrido. Cada una se justificó con hechos o decisiones que
+        siguen en la ficha; las decisiones respondidas no se vuelven a preguntar (D33)."""
+        self._mover("B17", reglas)
+        self.ficha.peligro_actual = False
+        camino, self.camino = self.camino, []
+        for regla in camino:
+            self._mover(regla, reglas)
+        self._preguntar(None)
+        self._preguntar(self._pregunta_del_estado())
+
+    def _hay_caso(self) -> bool:
+        f = self.ficha
+        return bool(f.procedencia or f.beneficio or f.implicito or f.afectacion or f.amenaza
+                    or f.represalia or f.nota_cuestionada)
 
     def _pregunta_del_estado(self) -> str | None:
         propia = self.ficha.participacion in PARTICIPACION_PROPIA
@@ -414,8 +439,7 @@ class SesionAutomata:
         # qS: no se hacen preguntas del caso; solo se confirma que la persona está a salvo.
         if self.estado == "qS":
             if h["a_salvo"]:
-                self._mover("B17", reglas)
-                self._preguntar(None)
+                self._salir_de_seguridad(reglas)
             else:
                 self._preguntar("B17")
             return self._resultado(reglas, None, None)
@@ -548,7 +572,7 @@ class SesionAutomata:
                 return self._resultado(reglas, None, None)
         elif regla == "B17":
             if respuesta == "si":
-                self._mover("B17", reglas)
+                self._salir_de_seguridad(reglas)
             else:
                 self._preguntar(None)
             return self._resultado(reglas, None, None)
@@ -583,7 +607,18 @@ class SesionAutomata:
         movimiento = [r for r in reglas if r not in ("B1", "B2")]
         # El «de acuerdo» acompaña solo al turno en que se respondió que no (D32).
         decision_negativa = not reglas and self._decidio_no and not aviso
-        if salida == "otro_tema":
+        if "B17" in reglas:
+            texto = "Me alegra que estés a salvo."
+            if e != "q1":
+                info = ESTADOS[e]
+                texto += (f" Retomamos tu caso donde lo dejamos: {info['nombre']} ({info['instancia']}). "
+                          "Lo que me contaste sigue registrado.")
+            elif self._hay_caso():
+                texto += " Retomamos tu caso donde lo dejamos; lo que me contaste sigue registrado."
+            else:
+                texto += " Si quieres, retomamos tu caso: cuéntame qué pasó."
+            partes.append(texto)
+        elif salida == "otro_tema":
             texto = (f"Lo que describes no muestra un intercambio de un beneficio por una ventaja académica. "
                      f"Corresponde al tema de {f.otro_tema}, que atiende otro módulo del equipo; aquí oriento solo "
                      f"sobre soborno académico.")
@@ -591,9 +626,7 @@ class SesionAutomata:
                 texto += " Si hay riesgo o violencia, Primer Contacto (CAE, primera puerta a la izquierda) orienta y acompaña."
             partes.append(texto)
         elif e == "q1" and (movimiento or not consulta):
-            if "B17" in reglas:
-                partes.append("Me alegra que estés a salvo. Si quieres, retomamos tu caso: cuéntame qué pasó.")
-            elif f.procedencia == "indirecta":
+            if f.procedencia == "indirecta":
                 partes.append("Lo que cuentas es un comentario de terceros; no lo trato como un hecho comprobado. "
                               "Si alguien vivió el episodio de primera mano, puede pedir orientación y aportar lo que recuerde.")
             elif self._nota:
@@ -621,7 +654,7 @@ class SesionAutomata:
         if not partes and not self.pendiente:
             partes.append("Sigo aquí. Si hay algo nuevo, cuéntamelo; la orientación de esta etapa sigue disponible.")
         vias = self.vias_concurrentes()
-        if vias and e not in ("q0", "q1", "qS") and movimiento:
+        if vias and e not in ("q0", "q1", "qS") and movimiento and "B17" not in reglas:
             partes.append("También puede aplicar: " + "; ".join(vias) + ".")
         if self.pendiente:
             partes.append(self.texto_pregunta())

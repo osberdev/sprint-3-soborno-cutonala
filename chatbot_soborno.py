@@ -379,9 +379,11 @@ class ChatSoborno:
         if pregunta and respuesta.endswith(pregunta):
             respuesta = respuesta[: -len(pregunta)].rstrip()
         # El extracto se muestra al llegar a una etapa o al responder una pregunta informativa,
-        # y nunca dos veces el mismo en la sesión (D25).
+        # y nunca dos veces el mismo en la sesión (D25). Retomar el caso tras Seguridad (B17)
+        # no es una etapa nueva: no añade extracto (D33).
         nuevos = [f for f in fragmentos if f["texto"] not in self.extractos_mostrados]
-        etapa = estado["estado"] not in ("q0", "q1") and any(r not in ("B1", "B2") for r in estado["reglas"])
+        etapa = (estado["estado"] not in ("q0", "q1") and "B17" not in estado["reglas"]
+                 and any(r not in ("B1", "B2") for r in estado["reglas"]))
         if nuevos and (etapa or estado.get("consulta")):
             primero = nuevos[0]
             self.extractos_mostrados.add(primero["texto"])

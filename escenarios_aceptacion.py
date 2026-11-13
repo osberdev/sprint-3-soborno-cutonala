@@ -50,7 +50,10 @@ ESCENARIOS = [
     ("G7-G8", ["Me amenazó con golpearme si no le pago.", "sí"], "qS", {"B3", "B8", "B16"}, None),
     # En qS una retractación no basta: se confirma que la persona está a salvo (B17).
     ("G9", ["Me amenazó con golpearme si no le pago.", "sí", "Era broma, olvídalo."], "qS", {"B16"}, None),
-    ("G9b", ["Me amenazó con golpearme si no le pago.", "sí", "Era broma, olvídalo.", "sí"], "q1", {"B16", "B17"}, None),
+    # D33 (decisión del 13 nov 2026): B17 entra a q1 y el caso retoma su camino (B8 → q3).
+    ("G9b", ["Me amenazó con golpearme si no le pago.", "sí", "Era broma, olvídalo.", "sí"], "q3", {"B16", "B17", "B8"}, None),
+    ("G11", ["Le di 500 pesos al profesor porque tenía miedo de reprobar la materia.", "sí",
+             "Ahora mismo está afuera del salón esperándome.", "Ya estoy a salvo."], "q6", {"B16", "B17", "B6", "B15"}, None),
     ("G10", ["Me amenazó con golpearme si no le pago.", "¿Hay profesores acusados de pedir dinero?"],
      "q3", {"B2"}, None),
 ]

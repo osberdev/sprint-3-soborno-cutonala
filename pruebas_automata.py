@@ -199,6 +199,33 @@ class PruebasRegresionPruebaManual13Nov(unittest.TestCase):
         self.assertEqual(r["estado"], "q2")
         self.assertNotIn("De acuerdo", r["respuesta"])
 
+    def test_salir_de_seguridad_retoma_el_caso_en_su_estado(self):
+        sesion, r = conversar(self.PAGO, "sí", "Ahora mismo está afuera del salón esperándome.")
+        self.assertEqual(r["estado"], "qS")
+        r = sesion.procesar("Ya estoy a salvo.")
+        self.assertEqual((r["estado"], r["reglas"], r["pendiente"]), ("q6", ["B17", "B6", "B15"], None))
+        self.assertIn("donde lo dejamos", r["respuesta"])
+        self.assertNotIn("cuéntame qué pasó", r["respuesta"])
+
+    def test_salir_de_seguridad_conserva_la_decision_sin_responder(self):
+        _, r = conversar(self.PAGO, "Ahora mismo está afuera del salón esperándome.", "Ya estoy a salvo.")
+        self.assertEqual((r["estado"], r["reglas"], r["pendiente"]), ("q2", ["B17", "B6"], "B15"))
+
+    def test_salir_de_seguridad_sin_caso_pide_el_relato(self):
+        _, r = conversar("Ahora mismo me está siguiendo.", "Ya estoy a salvo.")
+        self.assertEqual((r["estado"], r["reglas"]), ("q1", ["B17"]))
+        self.assertIn("cuéntame qué pasó", r["respuesta"])
+
+    def test_el_camino_retomado_usa_solo_flechas_del_diagrama(self):
+        sesion, _ = conversar("Un docente me pidió dinero a cambio de aprobar la materia.", "sí",
+                              "Ahora mismo me está siguiendo.")
+        origen = sesion.estado
+        r = sesion.procesar("sí, estoy a salvo")
+        for regla in r["reglas"]:
+            origen = destino(regla, origen)  # KeyError si la flecha no existe
+        self.assertEqual(origen, r["estado"])
+        self.assertEqual(r["estado"], "q5")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
