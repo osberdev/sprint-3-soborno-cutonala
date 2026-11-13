@@ -161,5 +161,13 @@ class PruebasRegresionPruebaManual(unittest.TestCase):
         self.assertNotIn(orientacion, r["respuesta"])
 
 
+    def test_si_sin_pregunta_pendiente_no_repite_lo_mismo(self):
+        sesion, _ = conversar("Ya pagué la inscripción y quiero saber mi calificación.", "no")
+        primera = sesion.procesar("si")
+        self.assertIn("No tengo una pregunta pendiente", primera["respuesta"])
+        segunda = sesion.procesar("si")
+        self.assertNotEqual(primera["respuesta"], segunda["respuesta"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

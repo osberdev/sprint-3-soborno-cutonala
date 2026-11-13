@@ -329,6 +329,7 @@ class SesionAutomata:
         self.intentos = 0
         self.turnos = 0
         self._nota: str | None = None   # texto que solo corresponde al turno actual
+        self._ultima: str | None = None  # última respuesta, para no repetirla literalmente
 
     # -- utilidades -------------------------------------------------------
     def _mover(self, regla: str, reglas: list[str]) -> None:
@@ -384,6 +385,11 @@ class SesionAutomata:
         respuesta = respuesta_si_no(mensaje) if self.pendiente else None
         if respuesta:
             return self._resolver(respuesta, reglas)
+
+        if not self.pendiente and respuesta_si_no(mensaje) and self.estado != "qS":
+            self._nota = ("No tengo una pregunta pendiente en este momento. Si algo cambió, cuéntame con tus "
+                          "palabras qué pasó; también puedes preguntarme por Primer Contacto.")
+            return self._resultado(reglas, None, None)
 
         # qS: no se hacen preguntas del caso; solo se confirma que la persona está a salvo.
         if self.estado == "qS":
@@ -569,6 +575,8 @@ class SesionAutomata:
                 partes.append("Necesito aclarar un dato antes de orientarte.")
             elif not aviso:
                 partes.append("Cuéntame qué pasó: quién pidió u ofreció algo, a cambio de qué, y si lo viviste tú.")
+        elif self._nota:
+            partes.append(self._nota)
         elif e == "qS" and self.pendiente == "B17":
             partes.append("Antes de seguir, necesito saber si estás en un lugar seguro.")
         elif decision_negativa:
@@ -586,7 +594,12 @@ class SesionAutomata:
             partes.append("También puede aplicar: " + "; ".join(vias) + ".")
         if self.pendiente:
             partes.append(self.texto_pregunta())
-        return " ".join(partes)
+        texto = " ".join(partes)
+        if texto == self._ultima and not reglas:
+            texto = ("Sigo esperando tu respuesta: " + self.texto_pregunta() if self.pendiente else
+                     "Sigo atento. Cuando quieras, cuéntame qué pasó o pregúntame por Primer Contacto.")
+        self._ultima = texto
+        return texto
 
     def texto_pregunta(self) -> str | None:
         if not self.pendiente:

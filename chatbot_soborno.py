@@ -99,7 +99,15 @@ def cargar_fragmentos(manifiesto: dict | None = None) -> list[dict[str, Any]]:
         for seccion in re.split(r"^## ", texto, flags=re.M)[1:]:
             titulo, _, cuerpo = seccion.partition("\n")
             titulo = titulo.strip()
+            bloques: list[str] = []
             for bloque in re.split(r"\n\s*\n", cuerpo.strip()):
+                # Los elementos de una lista se recuperan juntos: un punto suelto («7. Información…») no orienta.
+                es_lista = re.match(r"^(- |\d+\. )", bloque.strip()) is not None
+                if es_lista and bloques and re.match(r"^(- |\d+\. )", bloques[-1].strip()):
+                    bloques[-1] += " " + bloque.strip()
+                else:
+                    bloques.append(bloque)
+            for bloque in bloques:
                 partes = filas_de_tabla(bloque) if bloque.lstrip().startswith("|") else [bloque]
                 for parrafo in partes:
                     parrafo = re.sub(r"\s+", " ", parrafo).strip()
@@ -233,7 +241,7 @@ def ids_y_enlaces(fragmentos: list[dict[str, Any]], estado: dict[str, Any]) -> d
 def texto_visible(fragmento: dict[str, Any]) -> str:
     """Prepara el fragmento para mostrarlo: sin formato Markdown ni cabecera repetida del PDF."""
     texto = re.sub(r"\*\*(.+?)\*\*", r"\1", fragmento["texto"])
-    texto = re.sub(r"^- ", "", texto)
+    texto = re.sub(r"(^|\s)- (?=\S)", r"\1", texto)
     if fragmento.get("archivo") == "investigacion_soborno.pdf":
         texto = re.sub(
             r"^Investigación documental\s*\|\s*CUTonalá\s*\|\s*Corte:\s*\d{1,2}\s+\w+\s+\d{4}\s+\d+\s*",
@@ -325,6 +333,7 @@ class ChatSoborno:
         self.sesion = SesionAutomata()
         self.buscador = buscador if buscador is not None else Buscador()
         self.historial_usuario: list[str] = []
+        self.extractos_mostrados: set[str] = set()
 
     def responder(self, mensaje: str, gemini: bool = False) -> dict[str, Any]:
         estado = self.sesion.procesar(mensaje)
@@ -355,19 +364,27 @@ class ChatSoborno:
             }
         estado = {**estado, "success": True, "memoria_turnos": estado["turnos"]}
         fallo_faiss = None
-        try:
-            fragmentos = self.buscador.buscar(mensaje, estado)
-        except Exception as error:
-            if isinstance(self.buscador, Buscador):
-                raise
-            fallo_faiss = str(error)
-            fragmentos = Buscador().buscar(mensaje, estado)
+        fragmentos: list[dict[str, Any]] = []
+        # Un turno sin regla ni pregunta informativa no aporta nada que buscar.
+        if estado["reglas"] or estado.get("consulta"):
+            try:
+                fragmentos = self.buscador.buscar(mensaje, estado)
+            except Exception as error:
+                if isinstance(self.buscador, Buscador):
+                    raise
+                fallo_faiss = str(error)
+                fragmentos = Buscador().buscar(mensaje, estado)
         respuesta = estado["respuesta"]
         pregunta = estado.get("pregunta")
         if pregunta and respuesta.endswith(pregunta):
             respuesta = respuesta[: -len(pregunta)].rstrip()
-        if fragmentos:
-            primero = fragmentos[0]
+        # El extracto se muestra al llegar a una etapa o al responder una pregunta informativa,
+        # y nunca dos veces el mismo en la sesión (D25).
+        nuevos = [f for f in fragmentos if f["texto"] not in self.extractos_mostrados]
+        etapa = estado["estado"] not in ("q0", "q1") and any(r not in ("B1", "B2") for r in estado["reglas"])
+        if nuevos and (etapa or estado.get("consulta")):
+            primero = nuevos[0]
+            self.extractos_mostrados.add(primero["texto"])
             frases = re.split(r"(?<=[.!?])\s+", texto_visible(primero))
             extracto = " ".join(frases[:2]).replace("**", "")
             if len(extracto) > 420:

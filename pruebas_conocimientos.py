@@ -55,6 +55,19 @@ class PruebasConocimientos(unittest.TestCase):
         self.assertTrue(all({"q3", "q6"} & set(f["estados"]) for f in respuesta["fragmentos"]))
         self.assertFalse(any(f["apartado"] in ("7.1", "7.6") for f in respuesta["fragmentos"]))
 
+    def test_extracto_no_se_repite_y_turno_sin_novedad_no_busca(self):
+        chat = ChatSoborno()
+        primero = chat.responder("Un docente me pidió dinero a cambio de aprobar la materia.")
+        self.assertIn("Dato recuperado", primero["respuesta_chatbot"])
+        sin_novedad = chat.responder("no")
+        self.assertEqual(sin_novedad["fragmentos"], [])
+        self.assertNotIn("Dato recuperado", sin_novedad["respuesta_chatbot"])
+
+    def test_listas_se_recuperan_completas(self):
+        ficha = [f for f in Buscador().fragmentos if f["apartado"] == "14.1" and f["texto"].startswith("1.")]
+        self.assertEqual(len(ficha), 1)
+        self.assertIn("10. Actuación realmente realizada", ficha[0]["texto"])
+
     def test_relatos_del_campus_no_se_indexan_como_orientacion(self):
         self.assertFalse(any(f["archivo"] == "relatos_campus.md" for f in Buscador().fragmentos))
 
