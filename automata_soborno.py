@@ -170,7 +170,7 @@ BENEFICIO = (r"\b(dinero|pesos?|\$\s?\d+|pag(o|os|ar|ue|ues|ado|aba|aste|aron|ar
              r"|botell\w*|regal\w*|obsequi\w*|croquet\w*|aport\w*|cooperacion|donacion|mordida|soborn\w*|cuota\w*"
              # Expresiones coloquiales de las pruebas con Gemini del 13 nov 2026 (D50).
              r"|billetes?|lana|varo|moche|favor (monetario|economico))\b")
-VENTAJA = (r"\b(aprob\w*|reprob\w*|aprueb\w*|reprueb\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|cien|100|puntos?|materia)\b")
+VENTAJA = (r"\b(aprob\w*|reprob\w*|aprueb\w*|reprueb\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|(cien|100)(?! ?(pesos|mil|dolares|mxn|varos))|puntos?|materia)\b")
 NEXO = (r"(a ?cambio de|si (le |te )?(pag\w*|das|doy|da|entreg\w*|deposit\w*) .{0,25}(aprueb\w*|pas[ae]\w*|acredit\w*|sub\w*)|con (un|una|unos|unas) \w+ (me|te|lo|la) (pas\w*|aprueb\w*|acredit\w*)|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
         r"|si no (le )?(doy|pago|entrego|deposito)|quienes (den|aporten|paguen|entreguen)|tendran (100|cien)"
         r"|recibir\w* (puntos|cien|100)|puede cambiar (mi|la|las) (nota|calificacion)|conoce a alguien que puede"
@@ -186,6 +186,12 @@ PAGO_ORDINARIO = (r"\b(inscripcion|reinscripcion|colegiatura|matricula|credencia
                   r"|constancia\w*|titulacion|estacionamiento|cuota de recuperacion)\b")
 # Referencia a un pago ya contado: «ese pago», «lo que le di» (D47).
 REFERENCIA_PAGO = r"\b(es[ea]|este|el mismo) (pago|dinero|deposito|transferencia)\b|\blo que (le )?(pague|di|deposite)\b"
+# Aportación presentada como apoyo a una causa («para darle de comer a los perritos»).
+CAUSA = (r"\b(causa|benefic\w*|donac\w*|donativ\w*|colecta|caridad|croquet\w*|animal\w*|perr\w*|gat[oi]\w*"
+         r"|alimento|comida|darle de comer)\b")
+# 3.1, en el orden de la investigación.
+CAUSA_TEXTO = ("Para analizar una aportación destinada a terceros importa la relación entre el beneficio solicitado y "
+               "el ejercicio de la función. Una causa benéfica no autoriza cambiar los criterios de acreditación.")
 # Planteamientos hipotéticos: «¿y si me amenaza…?», «en caso de que…», «si me pidiera…» (D42).
 HIPOTETICA = (r"^\W*(y si|que pasa si|que pasaria si|que tal si|en caso de que|suponiendo|supongamos|hipotetic\w*)\b"
               r"|\ben caso de que\b|\bhipotetic\w*|\bsi (me |le |te |lo |la |nos )?\w+(ara|iera|ase|iese)\b")
@@ -321,6 +327,7 @@ def extraer_hechos(mensaje: str, adicionales: set[str] | frozenset[str] = frozen
         "pago_ordinario": pago_ordinario,
         "referencia_pago": _hay(REFERENCIA_PAGO, t),
         "hipotetica": _hay(HIPOTETICA, t),
+        "causa": _hay(CAUSA, t) and beneficio,
         "presion": b["presion"],
         "intercambio": beneficio and ventaja and (nexo or exigencia or ofrecimiento),
         "afectacion": b["afectacion"],
@@ -406,6 +413,7 @@ class Ficha:
     afectacion: bool = False
     otro_tema: str | None = None
     implicito: bool = False
+    causa: bool = False                       # aportación presentada como apoyo a una causa
     decisiones: dict[str, str] = field(default_factory=dict)   # regla -> "si" | "no" | "desconocido"
 
     def actualizar(self, h: dict[str, Any]) -> None:
@@ -435,6 +443,7 @@ class Ficha:
         self.nota_cuestionada |= h["nota_cuestionada"]
         self.afectacion |= h["afectacion"]
         self.implicito |= h["implicito"]
+        self.causa |= h["causa"]
         if h["otro_tema"]:
             self.otro_tema = h["otro_tema"]
 
@@ -881,6 +890,8 @@ class SesionAutomata:
             partes.append("Queda registrado como un hecho nuevo del caso. " + AMENAZA_TEXTO)
         elif e in ORIENTACION and movimiento:
             partes.append(ORIENTACION[e])
+            if f.causa and f.intercambio and e in ("q3", "q5", "q6"):
+                partes.append(CAUSA_TEXTO)
             if e == "q3" and (f.amenaza or f.represalia):
                 partes.append(AMENAZA_TEXTO)
         if not partes and not self.pendiente:

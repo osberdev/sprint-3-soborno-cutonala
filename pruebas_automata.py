@@ -376,5 +376,28 @@ class PruebasHipotesisYPagos(unittest.TestCase):
                 self.assertEqual(r["estado"], "q3")
 
 
+class PruebasCausaBenefica(unittest.TestCase):
+    """Prueba manual del 13 nov 2026: «… 100 pesos para pasar … para darle de comer a los perritos» (D53, D54)."""
+
+    def test_una_causa_no_cambia_el_intercambio_y_se_explica(self):
+        _, r = conversar("el profesor me pidio 100 pesos para pasar la materia supuestamente para darle de comer "
+                         "a los perritos")
+        self.assertEqual((r["estado"], r["reglas"]), ("q3", ["B3", "B7"]))
+        self.assertIn("Una causa benéfica no autoriza cambiar los criterios de acreditación.", r["respuesta"])
+
+    def test_sin_intercambio_la_causa_no_se_menciona(self):
+        _, r = conversar("Organizan una colecta voluntaria de croquetas para los animales del campus; no cuenta para "
+                         "la calificación.")
+        self.assertNotIn("Una causa benéfica", r["respuesta"])
+
+    def test_cien_pesos_no_es_una_calificacion(self):
+        # «100 pesos» es un monto; sin ventaja académica el bot solo aclara (C1), no presume una nota.
+        _, r = conversar("Le presté 100 pesos a un compañero.")
+        self.assertFalse(r["hechos"]["ventaja"])
+        self.assertEqual(r["estado"], "q1")
+        _, r = conversar("El profesor dijo que quienes den 200 pesos tendrán 100 en la materia.")
+        self.assertEqual(r["estado"], "q3")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
