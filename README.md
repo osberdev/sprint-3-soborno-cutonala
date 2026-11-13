@@ -25,7 +25,8 @@ Mensaje del estudiante
 | Archivo | Función |
 |---|---|
 | `chatbot_soborno.py` | Entrada del chat, búsqueda documental y conexión opcional con Gemini. |
-| `sprint3_soborno.py` | Reglas, estado y memoria de la sesión. |
+| `automata_soborno.py` | Autómata aprobado: estados q0–q6 y qS, reglas B1–B17, registro del caso y preguntas de sí o no. |
+| `sprint3_soborno.py` | Respuestas a las seis preguntas de Primer Contacto del Sprint 3 y demostración del autómata por consola. |
 | `conocimientos/*.md` (13 archivos) | La investigación segmentada por tema, transcrita sin cambios desde el `.docx`. |
 | `conocimientos/manifiesto.json` | Qué apartados contiene cada archivo, qué estados del autómata lo consultan y qué apartados se excluyen. |
 | `herramientas/segmentar_investigacion.py` | Regenera los archivos de conocimiento desde el `.docx` (`--verificar` solo comprueba). |
@@ -40,6 +41,7 @@ Mensaje del estudiante
 | `pruebas_chatbot.py` | Ocho pruebas automatizadas; incluyen un cliente simulado de Gemini. |
 | `pruebas_conocimientos.py` | Comprueba que los archivos de conocimiento coinciden textualmente con la investigación y que nada excluido llega al estudiante. |
 | `escenarios_aceptacion.py` | Criterios de aceptación del autómata nuevo (escenarios 9.1–9.10 y guion de prueba manual). |
+| `pruebas_automata.py` | Comprueba que la tabla de transiciones coincide con el diagrama aprobado y cubre casos límite. |
 | `pruebas_faiss_y_casos.py` | Nueve pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
 
@@ -99,6 +101,7 @@ Con Python 3.10 o posterior, desde esta carpeta:
 python3 pruebas_chatbot.py
 python3 pruebas_faiss_y_casos.py
 python3 pruebas_conocimientos.py
+python3 pruebas_automata.py
 python3 escenarios_aceptacion.py
 python3 chatbot_soborno.py --demo
 python3 chatbot_soborno.py
@@ -110,7 +113,7 @@ La primera instrucción ejecuta las pruebas automatizadas; la segunda reproduce 
 
 - `evidencias/pruebas_locales_2026-10-13.txt`: siete pruebas ejecutadas y aprobadas. Comprueban recuperación del directorio, selección documental, tratamiento de comentarios indirectos, memoria ante represalia académica, diferenciación de amenaza física, referencias y preparación de la solicitud a Gemini mediante un cliente simulado.
 - `evidencias/consultas_locales_2026-10-13.txt`: interacción ejecutada con consulta institucional, comentario indirecto, reinicio y un relato directo seguido de una posible represalia académica. Incluye respuestas, estados y fragmentos recuperados.
-- `evidencias/consulta_gemini_01.txt`: consulta real ejecutada por el usuario el 13 de octubre de 2026 desde Ubuntu, sobre una solicitud de dinero para aprobar. La salida muestra `Gemini + autómata + documentos`, estado `{'x': 4, 'y': 3}`, prioridad `prioritaria` y recuperación de los apartados 5.1, 7.3 y 4.2. Se verificó que el archivo contiene la respuesta y las referencias. Esta consulta aislada no prueba la continuidad de una conversación con Gemini.
+- `evidencias/consulta_gemini_01.txt`: consulta real ejecutada por el usuario el 13 de octubre de 2026 desde Ubuntu, sobre una solicitud de dinero para aprobar. La salida, anterior al autómata actual, muestra `Gemini + autómata + documentos`, estado `{'x': 4, 'y': 3}`, prioridad `prioritaria` y recuperación de los apartados 5.1, 7.3 y 4.2. Se verificó que el archivo contiene la respuesta y las referencias. Esta consulta aislada no prueba la continuidad de una conversación con Gemini.
 
 Estos resultados comprueban comportamientos de software en casos concretos; no certifican la precisión jurídica del contenido ni el reconocimiento de cualquier redacción posible.
 

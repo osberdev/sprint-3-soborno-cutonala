@@ -70,5 +70,6 @@
 |---|---|---|
 | 0 · Línea base | D09 | `pruebas_faiss_y_casos.py` termina en OK sin `pypdf` (prueba omitida) |
 | 1 · Base segmentada | D04; D05 en tablas y negritas | `pruebas_conocimientos.py`: el capítulo 12 no se carga y ningún fragmento visible contiene `\|---` ni `**` |
+| 2 · Autómata | D01, D02, D03, D06, D11–D18; D10 en parte (se eliminó la función duplicada de Gemini) | `escenarios_aceptacion.py` (20 escenarios) y `pruebas_automata.py` (conformidad con el diagrama y casos límite) |
 
 Los defectos G01–G06 del diagrama no se corrigen en la imagen: la implementación sigue el autómata aprobado (q6 Asesoría jurídica, q5 Autoridad externa, aceptación en q2–q6, lazo B8 en q3, B10 con (1,0)).

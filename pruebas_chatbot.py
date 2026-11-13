@@ -1,5 +1,6 @@
 """Pruebas de integración del módulo individual; no realizan llamadas a Gemini."""
 
+import json
 import os
 import sys
 import types
@@ -29,21 +30,24 @@ class PruebasSprint3(unittest.TestCase):
 
     def test_comentario_sobre_persona_no_se_convierte_en_hecho(self):
         respuesta = ChatSoborno().responder("Se comenta que el profesor X aprueba por regalos")
-        self.assertIn("indirecto", respuesta["justificacion"])
-        self.assertNotIn("legal", respuesta["rutas"])
+        self.assertEqual(respuesta["estado"], "q1")
+        self.assertIn("B4", respuesta["reglas"])
+        self.assertEqual(respuesta["ficha"]["procedencia"], "indirecta")
         self.assertIn("comentario", respuesta["respuesta_chatbot"])
 
     def test_relato_directo_y_represalia_academica_conservan_estado(self):
         chat = ChatSoborno()
         inicial = chat.responder("Un docente me pidió una botella a cambio de acreditar la materia")
-        self.assertEqual(inicial["coordenadas"], {"x": 4, "y": 3})
-        self.assertIn("UDG", inicial["rutas"])
-        self.assertIn("legal", inicial["rutas"])
+        self.assertEqual(inicial["estado"], "q3")
+        self.assertEqual(inicial["reglas"], ["B3", "B7"])
+        self.assertEqual(inicial["pendiente"], "B14")
         self.assertTrue(any(f["titulo"].startswith("5.1") for f in inicial["fragmentos"]))
         continuacion = chat.responder("Si no se la doy, me amenaza con reprobarme")
-        self.assertEqual(continuacion["coordenadas"], {"x": 4, "y": 3})
-        self.assertEqual(continuacion["tipo_riesgo"], "academico")
+        self.assertEqual(continuacion["estado"], "q3")
+        self.assertEqual(continuacion["reglas"], ["B8"])
+        self.assertEqual(continuacion["tipo_riesgo"], "academica")
         self.assertEqual(continuacion["prioridad"], "prioritaria")
+        self.assertEqual(continuacion["pendiente"], "B14")
         self.assertNotIn("acudir a emergencias", continuacion["respuesta_chatbot"])
         self.assertEqual(continuacion["memoria_turnos"], 2)
         self.assertTrue(any(f["titulo"].startswith("5.5") for f in continuacion["fragmentos"]))
@@ -54,18 +58,23 @@ class PruebasSprint3(unittest.TestCase):
             "Un docente me pidió 100 pesos para croquetas a cambio de ponerme 100 en la materia; "
             "pagué y la calificación quedó registrada. ¿Cómo puedo proceder?"
         )
-        self.assertEqual(respuesta["coordenadas"], {"x": 4, "y": 3})
+        self.assertEqual(respuesta["estado"], "q3")
         self.assertEqual(respuesta["prioridad"], "prioritaria")
-        self.assertIn("UDG", respuesta["rutas"])
-        self.assertIn("legal", respuesta["rutas"])
+        # Pagó lo que se le pidió: participación propia, se ofrece asesoría jurídica (B15).
+        self.assertEqual(respuesta["ficha"]["participacion"], "entrego")
+        self.assertEqual(respuesta["pendiente"], "B15")
 
     def test_amenaza_fisica_si_activa_orientacion_inmediata(self):
         chat = ChatSoborno()
         chat.responder("Un docente me pidió dinero a cambio de aprobar la materia")
         respuesta = chat.responder("Si no pago, me amenaza con golpearme")
-        self.assertEqual(respuesta["coordenadas"], {"x": 5, "y": 3})
-        self.assertEqual(respuesta["tipo_riesgo"], "fisico")
-        self.assertEqual(respuesta["prioridad"], "urgente")
+        self.assertEqual(respuesta["estado"], "q3")
+        self.assertEqual(respuesta["tipo_riesgo"], "fisica")
+        self.assertEqual(respuesta["pendiente"], "B16")
+        urgente = chat.responder("sí")
+        self.assertEqual(urgente["estado"], "qS")
+        self.assertEqual(urgente["prioridad"], "urgente")
+        self.assertIn("servicios de emergencia", urgente["respuesta_chatbot"])
 
     def test_todos_los_enlaces_tienen_fuente_identificada(self):
         respuesta = ChatSoborno().responder("¿Cuál es el plazo para revisar mi calificación?")
@@ -92,7 +101,7 @@ class PruebasSprint3(unittest.TestCase):
             HttpOptions=lambda **kwargs: kwargs,
         )
         chat = ChatSoborno()
-        estado = chat.sesion.procesar_mensaje("Un docente me pidió dinero a cambio de aprobar")
+        estado = chat.sesion.procesar("Un docente me pidió dinero a cambio de aprobar")
         fragmentos = chat.buscador.buscar("Un docente me pidió dinero a cambio de aprobar", estado)
         with patch.dict(sys.modules, {"google": modulo_google, "google.genai": modulo_google_genai}), patch.dict(
             os.environ, {"GEMINI_API_KEY": "clave_ficticia_para_prueba"}
@@ -106,6 +115,16 @@ class PruebasSprint3(unittest.TestCase):
         self.assertIn("FRAGMENTOS RECUPERADOS", llamadas[0]["input"])
         self.assertIn("No escribas citas", llamadas[0]["input"])
         self.assertLess(len(llamadas[0]["input"]), 15000)
+        self.assertIn("B14", json.dumps(estado, ensure_ascii=False))
+        self.assertIn(estado["pregunta"], llamadas[0]["input"])
+
+    def test_modo_gemini_conserva_la_pregunta_pendiente(self):
+        chat = ChatSoborno()
+        with patch("chatbot_soborno.explicar_con_gemini", return_value="Texto redactado por Gemini."):
+            respuesta = chat.responder("Un docente me pidió dinero a cambio de aprobar", gemini=True)
+        self.assertEqual(respuesta["modo"], "Gemini + autómata + documentos")
+        self.assertTrue(respuesta["respuesta_chatbot"].startswith("Texto redactado por Gemini."))
+        self.assertTrue(respuesta["respuesta_chatbot"].endswith(respuesta["pregunta"]))
 
 
 if __name__ == "__main__":

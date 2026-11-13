@@ -93,9 +93,8 @@ class PruebasCasosYFaiss(unittest.TestCase):
             "El profesor X me pidió 100 pesos para croquetas a cambio de ponerme 100 en la materia; "
             "pagué y la calificación quedó registrada. ¿Cómo procedo?"
         )
-        self.assertEqual(caso["coordenadas"], {"x": 4, "y": 3})
-        self.assertIn("UDG", caso["rutas"])
-        self.assertIn("legal", caso["rutas"])
+        self.assertEqual(caso["estado"], "q3")
+        self.assertEqual(consulta["reglas"], ["B2"])
         self.assertEqual(caso["memoria_turnos"], 1)
 
     def test_fallo_de_busqueda_vectorial_conserva_respuesta_local(self):
@@ -111,7 +110,7 @@ class PruebasCasosYFaiss(unittest.TestCase):
         self.assertIn("dos relatos estudiantiles", antecedente["respuesta_chatbot"])
         self.assertIsNotNone(antecedente["fallo_faiss"])
         caso = chat.responder("Un docente me pidió dinero para aprobar la materia")
-        self.assertEqual(caso["coordenadas"], {"x": 4, "y": 3})
+        self.assertEqual(caso["estado"], "q3")
         self.assertTrue(caso["fragmentos"])
         self.assertIsNotNone(caso["fallo_faiss"])
 
