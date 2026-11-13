@@ -31,7 +31,7 @@ Mensaje del estudiante
 | `conocimientos/*.md` (13 archivos) | La investigación segmentada por tema, transcrita sin cambios desde el `.docx`. |
 | `conocimientos/manifiesto.json` | Qué apartados contiene cada archivo, qué estados del autómata lo consultan y qué apartados se excluyen. |
 | `herramientas/segmentar_investigacion.py` | Regenera los archivos de conocimiento desde el `.docx` (`--verificar` solo comprueba). |
-| `conocimientos/primer_contacto_soborno.md` | Ficha institucional que consulta el motor de reglas. |
+| `conocimientos/primer_contacto_soborno.md` | Ficha institucional de una versión anterior; ningún módulo la consulta. |
 | `conocimientos/relatos_campus.md` | Relatos aportados sin nombres, con procedencia, datos faltantes y límites de uso, más el apartado 10.4 de la investigación. |
 | `conocimientos/casos_docentes.ejemplo.json` | Estructura vacía para registrar testimonios nominales por separado. |
 | `conocimientos_pdf/` | Dos PDF independientes: investigación de procesos y registro de relatos. |
@@ -133,7 +133,7 @@ Desde la iteración 4 (13 de noviembre de 2026) Gemini participa de dos formas i
 | `--gemini` | Una tarjeta del estado (etapa, instancia, hechos del caso en frases neutras, orientación local) y los fragmentos recuperados. **No envía el texto de los mensajes ni el historial.** | Redacta la orientación. El autómata ya decidió la etapa; la pregunta de sí o no se añade después, textual. | Si la redacción contiene un correo, enlace, cifra, plazo o instancia que no está en lo enviado, se muestra la respuesta local y se indica «REDACCIÓN DE GEMINI NO FUNDAMENTADA». |
 | `--extractor-gemini` | El texto de cada mensaje, salvo consultas de antecedentes y respuestas de sí o no. | Señala hechos de una lista cerrada, cada uno con una cita textual del mensaje. Solo se suman a los de las reglas locales; nunca los quitan. | Un hecho sin cita comprobable se descarta. Si el servicio falla, el turno se evalúa con las reglas locales. |
 
-Ambas peticiones usan `store=False`, temperatura 0.2 y una espera máxima de 12 segundos. El modelo se configura en un solo lugar, `gemini_soborno.py` (`gemini-3.5-flash-lite` por defecto, o la variable `GEMINI_MODEL`).
+La seudonimización no está aprobada; por eso `--extractor-gemini` se usa solo con relatos ficticios. Ambas peticiones usan `store=False`, temperatura 0.2 y una espera máxima de 12 segundos. El modelo se configura en un solo lugar, `gemini_soborno.py` (`gemini-3.5-flash-lite` por defecto, o la variable `GEMINI_MODEL`).
 
 Entorno registrado para la prueba del 13 de octubre: `google-genai 2.29.0`, según `evidencias/entorno_gemini.txt`. Esa versión es anterior a la integración actual.
 

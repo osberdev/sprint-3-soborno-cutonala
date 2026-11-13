@@ -1,8 +1,15 @@
 """Conformidad del autómata con el diagrama aprobado y casos límite; sin servicios externos."""
 
+import ast
+import json
+from pathlib import Path
+import re
 import unittest
 
-from automata_soborno import ESTADOS, REGLAS, TRANSICIONES, SesionAutomata, destino, respuesta_si_no
+from automata_soborno import (ESTADOS, FUENTES_ESTADO, PREGUNTAS, REGLAS, TRANSICIONES, SesionAutomata, destino,
+                              respuesta_si_no)
+
+RAIZ = Path(__file__).resolve().parent
 
 # Flechas del diagrama aprobado (corrigiendo la versión de Canva: q6 es Asesoría
 # jurídica, q5 Autoridad externa, B8 tiene lazo en q3 y B10 es una pregunta (1,0)).
@@ -280,6 +287,49 @@ class PruebasPreguntaSinDato(unittest.TestCase):
     def test_una_pregunta_con_hechos_sigue_siendo_un_relato(self):
         _, r = conversar("¿Qué hago si un profe me pidió dinero para pasar?")
         self.assertEqual(r["estado"], "q3")
+
+
+class PruebasFidelidadDeNombres(unittest.TestCase):
+    """Nombres de instituciones y normas exactos e identificables (decisión del 13 nov 2026)."""
+
+    NOMBRE = re.compile(
+        r"\b(?:Fiscal[ií]a|Procuradur[ií]a|Defensor[ií]a|Contralor[ií]a|Secretar[ií]a|Coordinaci[oó]n|Unidad|"
+        r"Divisi[oó]n|Departamento|Centro|Universidad|Reglamento|Ley|C[oó]digo|Primer Contacto|Ministerio P[uú]blico)"
+        r"(?:(?: (?:de la|de los|de las|a la|para la|del|de|en|con|para|y|a))? [A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñü]*)*")
+
+    @staticmethod
+    def textos_del_codigo(archivo):
+        arbol = ast.parse((RAIZ / archivo).read_text(encoding="utf-8"))
+        docstrings = {id(n.body[0].value) for n in ast.walk(arbol)
+                      if isinstance(n, (ast.Module, ast.FunctionDef, ast.ClassDef)) and n.body
+                      and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
+        # Se omiten docstrings y expresiones regulares (patrones de búsqueda, no texto mostrado).
+        return [n.value for n in ast.walk(arbol)
+                if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docstrings
+                and not re.search(r"\\b|\(\?:|\[A-Z", n.value)]
+
+    def test_cada_nombre_propio_es_un_nombre_completo_de_la_investigacion(self):
+        investigacion = "\n".join(p.read_text(encoding="utf-8") for p in sorted((RAIZ / "conocimientos").glob("*.md"))
+                                  if p.name != "primer_contacto_soborno.md")
+        # Nombres completos tal como aparecen en la investigación: «Fiscalía Anticorrupción»
+        # no vale, porque allí siempre continúa («… de Jalisco»).
+        completos = {m.group(0) for m in self.NOMBRE.finditer(investigacion)}
+        # «Centro de Atención a Estudiantes y CRT» enumera dos nombres.
+        completos |= {n.split(" y ")[0] for n in completos}
+        for archivo in ("automata_soborno.py", "sprint3_soborno.py", "gemini_soborno.py"):
+            for texto in self.textos_del_codigo(archivo):
+                for nombre in (m.group(0) for m in self.NOMBRE.finditer(texto)):
+                    with self.subTest(archivo=archivo, nombre=nombre):
+                        self.assertIn(nombre, completos)
+
+    def test_pregunta_b14_nombra_la_fiscalia_completa(self):
+        self.assertIn("Fiscalía Especializada en Combate a la Corrupción de Jalisco", PREGUNTAS["B14"])
+
+    def test_las_referencias_existen_en_fuentes(self):
+        fuentes = json.loads((RAIZ / "fuentes.json").read_text(encoding="utf-8"))["fuentes"]
+        from sprint3_soborno import FAQ
+        citadas = {s for _, ids in FAQ.values() for s in ids} | {s for ids in FUENTES_ESTADO.values() for s in ids}
+        self.assertLessEqual(citadas, set(fuentes))
 
 
 if __name__ == "__main__":

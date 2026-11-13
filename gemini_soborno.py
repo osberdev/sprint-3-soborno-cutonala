@@ -80,7 +80,7 @@ def describir_fallo(error: Exception) -> str:
 # Redacción
 # ---------------------------------------------------------------------------
 
-INSTRUCCION_REDACCION = f"""Eres el módulo de orientación sobre soborno académico del chatbot de CUTonalá (Universidad de Guadalajara).
+INSTRUCCION_REDACCION = f"""Eres el módulo de orientación sobre soborno académico del chatbot del Centro Universitario de Tonalá (CUTonalá), UDG.
 Escribe la respuesta que leerá un estudiante, en español claro.
 
 1. Usa solo la TARJETA y el CONTEXTO. Si te falta un dato, di que no tienes información oficial sobre ese punto.

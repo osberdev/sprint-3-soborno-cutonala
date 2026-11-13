@@ -29,17 +29,18 @@ ESTADOS: dict[str, dict[str, Any]] = {
     "q1": {"nombre": "Aclaración", "fase": "1/3 Comprender", "nivel": "Sin apoyo",
            "instancia": "Hechos del caso", "aceptacion": False, "terminal": False},
     "q2": {"nombre": "Personal", "fase": "2/3 Orientar en CUTonalá", "nivel": "Personal",
-           "instancia": "Unidad de Orientación Educativa · CAE, 2.º piso", "aceptacion": True, "terminal": False},
+           "instancia": "Unidad de Orientación Educativa · CAE, segundo piso", "aceptacion": True, "terminal": False},
     "q3": {"nombre": "Primer Contacto", "fase": "2/3 Orientar en CUTonalá", "nivel": "UDG",
            "instancia": "Primer Contacto · CAE, primera puerta a la izquierda", "aceptacion": True, "terminal": False},
     "q4": {"nombre": "Académica", "fase": "2/3 Orientar en CUTonalá", "nivel": "UDG",
-           "instancia": "Coordinación de ICC · CAE, 3.er piso → departamento de la materia", "aceptacion": True, "terminal": False},
+           "instancia": ("Coordinación de Ingeniería en Ciencias Computacionales · CAE, tercer piso → "
+                         "jefatura del departamento responsable de la materia"), "aceptacion": True, "terminal": False},
     "q5": {"nombre": "Autoridad externa", "fase": "3/3 Orientar fuera de la UdeG", "nivel": "Legal",
            "instancia": "Fiscalía Especializada en Combate a la Corrupción de Jalisco", "aceptacion": True, "terminal": True},
     "q6": {"nombre": "Asesoría jurídica", "fase": "3/3 Orientar fuera de la UdeG", "nivel": "Legal",
            "instancia": "Procuraduría Social de Jalisco", "aceptacion": True, "terminal": True},
     "qS": {"nombre": "Seguridad", "fase": "Interrupción", "nivel": "Interrupción",
-           "instancia": "Servicios de emergencia · intervención en crisis, CAE 2.º piso", "aceptacion": False, "terminal": False},
+           "instancia": "Servicios de emergencia o seguridad · intervención en crisis, CAE, segundo piso", "aceptacion": False, "terminal": False},
 }
 
 # (regla, origen) -> destino. "*" significa cualquier estado. Los lazos (B1, B2,
@@ -77,8 +78,10 @@ REGLAS = {
 
 PREGUNTAS = {
     "B10": "¿Quieres orientación para reportarlo en la universidad? Responde sí o no.",
-    "B14": "¿Quieres orientación para acudir a la autoridad externa, la Fiscalía Anticorrupción? Responde sí o no.",
-    "B15": "¿Quieres orientación sobre asesoría jurídica para tu propia situación antes de declarar? Responde sí o no.",
+    "B14": ("¿Quieres orientación para acudir a la autoridad externa, la Fiscalía Especializada en Combate a la "
+            "Corrupción de Jalisco? Responde sí o no."),
+    "B15": ("¿Quieres orientación sobre asesoría jurídica independiente para tu propia situación antes de una "
+            "declaración formal? Responde sí o no."),
     "B16": "¿Estás en peligro en este momento? Responde sí o no.",
     "B17": "¿Estás en un lugar seguro ahora? Responde sí o no.",
     # Aclaración dentro de q1 (lazo B4): no es una flecha nueva; un «sí» confirma B7.
@@ -90,35 +93,49 @@ REFORMULACION = {
 }
 REPREGUNTA = "Para continuar necesito un sí o un no. Si prefieres no decidir ahora, también está bien: dime «no»."
 
-# Orientación local de cada estado. Todo dato procede de la investigación
-# (conocimientos/); los apartados de origen se indican en el comentario.
+# Orientación local de cada estado. Los nombres de instituciones y normas se copian
+# exactos de la investigación (conocimientos/) y las frases siguen su redacción; el
+# comentario indica el apartado de origen. `pruebas_automata.py` verifica que cada
+# nombre propio exista textualmente en la investigación.
 ORIENTACION = {
-    # 4.3 y 6.2
-    "q2": ("Lo primero es tu bienestar. La Unidad de Orientación Educativa del CUTonalá ofrece orientación "
-           "psicológica e intervención en crisis en el CAE, segundo piso. Si lo deseas, puedes pedir el "
-           "acompañamiento de una persona de confianza."),
-    # 5.2, 5.3 y 6.2
-    "q3": ("Primer Contacto está en el CAE, entrando a la izquierda, primera puerta (primercontacto@cutonala.udg.mx). "
-           "Orienta, valora el riesgo y canaliza; la denuncia universitaria la reciben la Secretaría de la División "
-           "o la Secretaría Académica. Conserva los mensajes completos y anota fecha, materia y lo que se pidió u ofreció."),
+    # 4.3 y 4.1
+    "q2": ("Lo primero es tu bienestar. La Unidad de Orientación Educativa de CUTonalá publica atención presencial y "
+           "virtual, orientación psicológica e intervención en crisis; el apoyo presencial en crisis está en el segundo "
+           "piso del CAE, subiendo las escaleras a la izquierda. Si lo deseas, puedes solicitar acompañamiento de "
+           "alguien de confianza."),
+    # 6.2, 5.2, 5.3 y 4.2
+    "q3": ("Primer Contacto está al entrar al CAE, primera puerta a la izquierda (primercontacto@cutonala.udg.mx). "
+           "Su página describe acompañamiento, valoración de riesgo, apoyo emocional, recepción y canalización. "
+           "La denuncia universitaria la reciben, conforme a su competencia, las secretarías de división y la "
+           "Secretaría Académica del centro. Conserva los mensajes completos, sin alterarlos ni difundirlos, y anota "
+           "fecha, materia, el beneficio solicitado u ofrecido y la ventaja académica mencionada."),
     # 5.6 y 6.2
-    "q4": ("La revisión de tu propia calificación se solicita por escrito y con justificación ante la jefatura del "
-           "departamento de la materia, dentro de los tres días hábiles siguientes a su publicación. La Coordinación "
-           "de ICC (CAE, tercer piso) te ayuda a identificar el departamento. Es un trámite distinto de una denuncia."),
-    # 7.3, 7.4 y 6.3
-    "q5": ("La Fiscalía Especializada en Combate a la Corrupción de Jalisco recibe denuncias en formato anónimo o con "
-           "datos personales. No necesitas terminar el trámite universitario para acudir: ambas vías pueden coexistir. "
-           "La autoridad decide si los hechos constituyen delito."),
+    "q4": ("El Reglamento General de Evaluación y Promoción de Alumnos permite solicitar por escrito y con "
+           "justificación la revisión de tu evaluación ante la jefatura del departamento responsable de la materia, "
+           "dentro de los tres días hábiles siguientes a la publicación o notificación. La Coordinación de Ingeniería "
+           "en Ciencias Computacionales (CAE, tercer piso) puede ayudarte a identificar el departamento que "
+           "administra la asignatura. Es un procedimiento académico separado de la denuncia."),
+    # 7.4, 7.3, 7.2 y 6.3
+    "q5": ("La Fiscalía Especializada en Combate a la Corrupción de Jalisco publica una página de denuncia con "
+           "narración de hechos, adjuntos y datos opcionales, y ofrece formatos para denuncia anónima y con datos "
+           "personales. No es necesario que primero termine un expediente universitario. La autoridad investigadora "
+           "establece la adecuación de los hechos a la norma; una denuncia no equivale a condena."),
     # 7.5 y 6.3
-    "q6": ("Como participaste en el intercambio, conviene asesoría jurídica independiente antes de cualquier declaración "
-           "formal. La Procuraduría Social de Jalisco publica orientación jurídica gratuita (33 3030 2900). Pedir "
-           "asesoría no implica culpabilidad y nadie puede garantizarte el resultado de un procedimiento."),
+    "q6": ("Si temes responsabilidad por haber ofrecido o entregado el beneficio, necesitas asesoría independiente "
+           "sobre tus derechos y obligaciones antes de una declaración formal. La Procuraduría Social de Jalisco "
+           "publica orientación jurídica gratuita en su ficha de servicios jurídicos asistenciales (33 3030 2900); "
+           "el servicio concreto debe confirmarse. La ausencia de garantía de inmunidad no justifica ocultar, "
+           "destruir o fabricar información."),
     # 4.1 y 4.3
-    "qS": ("Tu seguridad es lo primero. Si hay peligro, aléjate de la situación y acude a los servicios de emergencia. "
-           "En el CUTonalá, la Unidad de Orientación Educativa ofrece intervención en crisis en el CAE, segundo piso."),
+    "qS": ("Tu seguridad es lo primero. Si hay peligro actual, la prioridad es alejarte de la situación insegura y "
+           "acudir a los servicios de emergencia o seguridad disponibles. En CUTonalá, la Unidad de Orientación "
+           "Educativa ubica la intervención en crisis en el segundo piso del CAE."),
 }
-AMENAZA_TEXTO = ("Ante una amenaza o represalia, la normativa universitaria contempla medidas de protección "
-                 "(artículos 39 a 46 del reglamento de responsabilidades).")
+# 5.5
+AMENAZA_TEXTO = ("Ante una amenaza o represalia, la normativa universitaria contempla medidas contra amenazas, "
+                 "intimidación y acciones adversas, sujetas a decisión de la autoridad competente: los artículos "
+                 "39–46 del Reglamento de Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria "
+                 "regulan medidas cautelares.")
 FUENTES_ESTADO = {"q1": ["S01"], "q2": ["S10"], "q3": ["S01", "S05", "S06"], "q4": ["S04", "S11"],
                   "q5": ["S13", "S17"], "q6": ["S12", "S18"], "qS": ["S01", "S10"]}
 SALUDO = r"^(hola|buenas|buenos dias|buenas tardes|buenas noches|que tal|hey)\b"
@@ -685,7 +702,7 @@ class SesionAutomata:
         if (f.amenaza or f.represalia) and e not in ("q3", "qS"):
             vias.append("Primer Contacto (protección y medidas)")
         if f.nota_cuestionada and e != "q4":
-            vias.append("revisión de la propia calificación (3 días hábiles)")
+            vias.append("revisión de la propia calificación (tres días hábiles)")
         if f.intercambio and e in ("q2", "q4"):
             vias.append("denuncia universitaria (Primer Contacto canaliza)")
         return vias
@@ -718,7 +735,8 @@ class SesionAutomata:
                      f"Corresponde al tema de {f.otro_tema}, que atiende otro módulo del equipo; aquí oriento solo "
                      f"sobre soborno académico.")
             if f.otro_tema == "acoso sexual":
-                texto += " Si hay riesgo o violencia, Primer Contacto (CAE, primera puerta a la izquierda) orienta y acompaña."
+                texto += (" Si hay riesgo o violencia, Primer Contacto (al entrar al CAE, primera puerta a la izquierda) "
+                          "ofrece acompañamiento principalmente en situaciones de violencia.")
             partes.append(texto)
         elif e == "q1" and (movimiento or not consulta):
             if f.procedencia == "indirecta":

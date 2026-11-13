@@ -22,45 +22,79 @@ def normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", sin_acentos).strip()
 
 
+# Respuestas a las preguntas informativas. Los nombres de instituciones, normas, personas,
+# correos y teléfonos se copian exactos de la investigación (capítulos 4–7 y 6.2–6.3).
 FAQ: dict[str, tuple[str, tuple[str, ...]]] = {
     "encargado": (
-        "El directorio de CUTonalá identifica a Blanca Elizabeth González Jauregui como encargada del despacho de Primer Contacto. El directorio central también registra a Valeria Rubí González Orizaba, con horario de atención distinto. Confirma el turno antes de acudir.",
+        "El directorio de Secretaría Académica identifica a Blanca Elizabeth González Jauregui como encargada del "
+        "despacho de Primer Contacto. El directorio central de la Unidad para la Igualdad también incluye a Valeria "
+        "Rubí González Orizaba. La investigación no probó llamadas ni disponibilidad presencial.",
         ("S06", "S08"),
     ),
     "ubicacion": (
-        "Primer Contacto está en el Centro de Atención a Estudiantes (CAE) del CUTonalá: entrando al edificio, a la izquierda, primera puerta, en la oficina compartida con el enlace de la Defensoría. Campus: Av. Nuevo Periférico 555, Ejido San José Tateposco, Tonalá. El directorio central publica atención de Blanca de lunes a viernes de 9:00 a 15:00 y de Valeria de 12:00 a 19:00.",
+        "Primer Contacto está en el Centro de Atención a Estudiantes (CAE) de CUTonalá: al entrar al CAE, primera "
+        "puerta a la izquierda, en la oficina compartida con la Defensoría. El domicilio del campus es Av. Nuevo "
+        "Periférico 555, Ejido San José Tateposco, C. P. 45425, Tonalá, Jalisco. El directorio central de la Unidad "
+        "para la Igualdad señala atención de lunes a viernes, 9:00–15:00 para Blanca y 12:00–19:00 para Valeria; la "
+        "página local anuncia atención 9:00–19:00.",
         ("S05", "S08"),
     ),
     "contacto": (
-        "El correo publicado de Primer Contacto es primercontacto@cutonala.udg.mx. El directorio central muestra 33 2300 2000, extensión 64117, mientras otras páginas del CUT muestran números distintos; confirma el teléfono por correo o en el CAE antes de usarlo para un trámite.",
-        ("S06", "S08"),
+        "El correo publicado de Primer Contacto es primercontacto@cutonala.udg.mx. Para llamar existe una "
+        "discrepancia: el directorio de CUT publica 33 2000 2300, mientras el central de Primer Contacto muestra "
+        "33 2300 2000, extensión 64117; otras páginas conservan 33 3134 2222. No se selecciona uno como único número "
+        "confirmado; el correo institucional y la ubicación publicada son alternativas mientras se verifica el teléfono.",
+        ("S06", "S07", "S08"),
     ),
     "programa": (
-        "Primer Contacto orienta y acompaña a integrantes de la comunidad universitaria que relatan violencia; puede valorar riesgo, ofrecer primera atención y canalizar apoyos psicológicos, médicos o legales, además de recibir y remitir información conforme al reglamento. No determina responsabilidad ni impone sanciones.",
+        "La página de Primer Contacto de CUTonalá presenta sus funciones dentro de la prevención y atención de "
+        "violencia: acompañamiento, valoración de riesgo, apoyo emocional, recepción y canalización. El Reglamento de "
+        "Responsabilidades Vinculadas con Faltas a la Normatividad Universitaria también regula esta figura y le "
+        "atribuye solicitar medidas de protección a la autoridad facultada. Primer Contacto no es el órgano que dicta "
+        "una sentencia penal ni garantiza una sanción universitaria.",
         ("S01", "S05"),
     ),
     "relacion": (
-        "Si el posible soborno incluye amenazas, intimidación o necesidad de apoyo por violencia, Primer Contacto es pertinente para orientación y valoración de protección. La norma universitaria también contempla beneficios indebidos por ventajas académicas. Para un soborno sin violencia, conviene pedir que identifiquen la instancia receptora competente; Primer Contacto no es un paso obligatorio antes de consultar a Fiscalía.",
+        "Cuando el posible soborno se acompaña de amenazas, intimidación o afectaciones al bienestar, la relación con "
+        "Primer Contacto es más directa. El artículo 21.1, fracciones X y XI, del Reglamento de Responsabilidades "
+        "Vinculadas con Faltas a la Normatividad Universitaria contempla la exigencia o recepción de dinero o bienes "
+        "para conceder ventajas académicas y el ofrecimiento, promesa o entrega de beneficios indebidos para "
+        "obtenerlas. Para un soborno sin violencia resulta razonable pedir orientación y confirmación del canal de "
+        "recepción; también existe la presentación ante las autoridades previstas en el artículo 51.",
         ("S01", "S03", "S05"),
     ),
     "coordinacion": (
-        "Para orientación académica en Ingeniería en Ciencias Computacionales, el directorio publica a Dulce María Vargas Mora, cd.computacion@cutonala.udg.mx, CAE, tercer piso. Puede ayudar a identificar el departamento de la materia. La Secretaría Académica publica a César E. González Coronado, cesar.gonzalez@cutonala.udg.mx, Biblioteca, segundo piso. La coordinación no decide por sí sola una sanción.",
+        "Coordinación de Ingeniería en Ciencias Computacionales: Dulce María Vargas Mora, cd.computacion@cutonala.udg.mx, "
+        "CAE, tercer piso. Es un contacto para orientación académica y localización del departamento de la materia; no "
+        "se presenta como autoridad que por sí sola investiga o sanciona el soborno. Secretaría Académica: César E. "
+        "González Coronado, cesar.gonzalez@cutonala.udg.mx, edificio de Biblioteca, segundo piso.",
         ("S06", "S11", "S01"),
     ),
     "plazo": (
-        "Si cuestionas tu propia calificación, el reglamento prevé solicitar su revisión por escrito y con justificación ante la jefatura del departamento responsable de la materia dentro de tres días hábiles siguientes a la publicación o notificación. Es un trámite distinto de denunciar un posible soborno.",
+        "El Reglamento General de Evaluación y Promoción de Alumnos permite solicitar por escrito y con justificación "
+        "la revisión de una evaluación ante la jefatura del departamento responsable de la materia, dentro de los tres "
+        "días hábiles siguientes a la publicación o notificación. Es un procedimiento académico separado de la denuncia "
+        "de un posible soborno.",
         ("S04",),
     ),
     "niveles": (
-        "Nivel personal: registrar hechos y pedir apoyo si lo necesitas. Nivel UDG: orientación, denuncia disciplinaria y, si corresponde, revisión de la propia evaluación. Nivel legal: asesoría y eventual denuncia ante la autoridad externa competente. Las vías pueden coexistir; no hay que terminar una para comenzar otra.",
+        "El nivel personal atiende bienestar, comprensión y organización. El nivel universitario atiende evaluación, "
+        "disciplina y derechos en la institución. El nivel legal atiende posibles responsabilidades y protección fuera "
+        "de ella. No es necesario exigir que primero termine un expediente universitario.",
         ("S01", "S04", "S10", "S17"),
     ),
     "legal": (
-        "La Fiscalía Especializada en Combate a la Corrupción de Jalisco publica un formulario de denuncia con datos opcionales y formatos anónimo y con datos personales. Atiende posibles delitos de corrupción; su sitio está en https://fiscaliaanticorrupcion.jalisco.gob.mx/denuncia. Pedir orientación jurídica no requiere esperar a que concluya el procedimiento universitario. La autoridad decide si los hechos constituyen delito.",
+        "La Fiscalía Especializada en Combate a la Corrupción de Jalisco publica una página de denuncia con narración "
+        "de hechos, adjuntos y datos opcionales, y ofrece formatos para denuncia anónima y con datos personales: "
+        "https://fiscaliaanticorrupcion.jalisco.gob.mx/denuncia. Recibe información e investiga posibles delitos de "
+        "corrupción; una denuncia no equivale a condena. No es necesario que primero termine un expediente universitario.",
         ("S13", "S17", "S01"),
     ),
     "personal": (
-        "Anota fechas, materia, lo solicitado u ofrecido y la ventaja prometida; conserva mensajes completos y originales sin alterarlos ni difundirlos. Si te afecta emocionalmente, la Unidad de Orientación Educativa del CUTonalá publica atención psicológica y ubicación en el CAE, segundo piso.",
+        "Anota fecha aproximada, lugar o plataforma, materia y grupo, el beneficio solicitado u ofrecido y la ventaja "
+        "académica mencionada. Conserva originales y copias privadas; no se debe alterar el material ni difundirlo en "
+        "grupos abiertos. Si te afecta emocionalmente, la Unidad de Orientación Educativa de CUTonalá publica "
+        "orientación psicológica e intervención en crisis en el CAE, segundo piso.",
         ("S10", "S01"),
     ),
 }
