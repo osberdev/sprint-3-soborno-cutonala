@@ -144,6 +144,12 @@ class PruebasRedaccion(unittest.TestCase):
                  "CUTonalá te atiende; su teléfono es 33 3030 2900.")
         self.assertEqual(verificar_fundamento(texto, soporte), [])
 
+    def test_instancia_no_cruza_el_final_de_la_oracion(self):
+        # Falso positivo de la prueba real del 13 nov 2026 (D48): «Secretaría Académica. Te».
+        soporte = ["la denuncia universitaria la reciben la Secretaría de la División o la Secretaría Académica."]
+        texto = "La reciben la Secretaría de la División o la Secretaría Académica. Te conviene conservar los mensajes."
+        self.assertEqual(verificar_fundamento(texto, soporte), [])
+
     def test_pregunta_final_de_gemini_se_omite(self):
         self.assertEqual(limpiar_redaccion("Acude a Primer Contacto. ¿Quieres saber más?"),
                          "Acude a Primer Contacto.")
@@ -197,13 +203,14 @@ class PruebasRedaccion(unittest.TestCase):
 
 
 class PruebasExtractor(unittest.TestCase):
-    MENSAJE = "El profe me dijo que con una lana me pasaba la materia."
+    # «feria» y «echar la mano» no están en las reglas locales («lana» sí, desde D50).
+    MENSAJE = "El profe me dijo que con una feria me echaba la mano en el final."
 
     def test_cita_que_no_esta_en_el_mensaje_se_descarta(self):
         salida = json.dumps({"hechos": [
-            {"hecho": "beneficio", "cita": "con una lana"},
+            {"hecho": "beneficio", "cita": "con una feria"},
             {"hecho": "exigencia", "cita": "me exigió dinero"},       # no está en el mensaje
-            {"hecho": "inventado", "cita": "me pasaba"},              # fuera del vocabulario
+            {"hecho": "inventado", "cita": "me echaba la mano"},      # fuera del vocabulario
             {"hecho": "ventaja", "cita": "me"},                       # cita demasiado corta
         ]})
         aceptados, descartados = interpretar_extraccion(salida, self.MENSAJE)
@@ -214,14 +221,15 @@ class PruebasExtractor(unittest.TestCase):
         local = SesionAutomata().procesar(self.MENSAJE)
         self.assertEqual(local["estado"], "q1")
         salida = json.dumps({"hechos": [
-            {"hecho": "beneficio", "cita": "con una lana"},
+            {"hecho": "beneficio", "cita": "con una feria"},
             {"hecho": "exigencia", "cita": "El profe me dijo"},
-            {"hecho": "nexo", "cita": "con una lana me pasaba"},
+            {"hecho": "nexo", "cita": "con una feria me echaba la mano"},
+            {"hecho": "ventaja", "cita": "en el final"},
         ]})
         with patch("gemini_soborno.generar", GeminiFalso(salida)):
             r = SesionAutomata(extractor=ExtractorGemini()).procesar(self.MENSAJE)
         self.assertEqual((r["estado"], r["reglas"]), ("q3", ["B3", "B7"]))
-        self.assertEqual(r["hechos_gemini"], ["beneficio", "exigencia", "nexo"])
+        self.assertEqual(r["hechos_gemini"], ["beneficio", "exigencia", "nexo", "ventaja"])
 
     def test_extractor_nunca_quita_hechos_locales(self):
         # Con un extractor que no encuentra nada, los 20 escenarios aprobados dan lo mismo.

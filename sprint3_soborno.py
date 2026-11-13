@@ -74,8 +74,9 @@ def intencion_pregunta(texto: str) -> str | None:
         return "relacion"
     if any(x in t for x in ("encargad", "responsable", "quien atiende", "quien es")) and "primer contacto" in t:
         return "encargado"
-    if any(x in t for x in ("donde", "ubicacion", "encuentro", "direccion", "horario", "atiend", "despach",
-                            "abren", "dias")) and any(x in t for x in ("primer contacto", "oficina", "cae")):
+    if any(x in t for x in ("donde", "ubicacion", "ubica", "encuentro", "encontrar", "direccion", "sitio", "lugar",
+                            "llego", "llegar", "horario", "atiend", "despach", "abren", "dias"
+                            )) and any(x in t for x in ("primer contacto", "oficina", "cae")):
         return "ubicacion"
     if any(x in t for x in ("consiste", "hace el programa", "sirve primer", "funciones del programa")):
         return "programa"

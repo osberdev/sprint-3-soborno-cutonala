@@ -249,10 +249,26 @@ class PruebasPreguntaSinDato(unittest.TestCase):
         # Prueba del 13 nov 2026 (D45): antes recibían «No tengo información oficial».
         from sprint3_soborno import intencion_pregunta
         for texto in ("donde esta primer co", "donde encuentro contacto uno", "dónde está primer contato",
-                      "en primer contacto, atienden los sabados?"):
+                      "en primer contacto, atienden los sabados?", "en que sitio encontrar primer contacto puedo"):
             with self.subTest(texto=texto):
                 self.assertEqual(intencion_pregunta(texto), "ubicacion")
         self.assertIsNone(intencion_pregunta("despachan los sabados?"))
+
+    def test_pregunta_por_un_lugar_no_abre_un_caso(self):
+        # D49: «en que sitio encontrar primer contacto puedo» abría un caso (B3, q1).
+        _, r = conversar("en que sitio encontrar primer contacto puedo")
+        self.assertEqual((r["estado"], r["reglas"], r["consulta"]), ("q0", ["B1"], "ubicacion"))
+        _, r = conversar("en que horario abren la biblioteca")
+        self.assertEqual((r["estado"], r["reglas"], r["sin_dato"]), ("q0", [], True))
+
+    def test_expresiones_coloquiales_de_dinero_sin_extractor(self):
+        # D50: el extractor de Gemini las detectó; las reglas locales también deben hacerlo.
+        for mensaje in ("El profe me dijo que con una lana me pasaba la materia.",
+                        "el maestro me dijo qu a cambio de unos billetes me pasaba la materia",
+                        "un docente me insinuo que acambio de un favor monetario podria aprobar la materia"):
+            with self.subTest(mensaje=mensaje):
+                _, r = conversar(mensaje)
+                self.assertEqual(r["estado"], "q3")
 
     def test_dos_preguntas_sin_dato_no_terminan_en_sigo_atento(self):
         # D46: la segunda respuesta igual se sustituía por «Sigo esperando tu respuesta».

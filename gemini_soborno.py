@@ -206,7 +206,8 @@ INSTANCIA = re.compile(
     r"\b(?:Fiscal[ií]a|Procuradur[ií]a|Defensor[ií]a|Contralor[ií]a|Comisi[oó]n|Ministerio P[uú]blico|Tribunal|"
     r"Juzgado|Secretar[ií]a|Coordinaci[oó]n|Unidad|Direcci[oó]n|Consejo|Comit[eé]|Instituto|Polic[ií]a|"
     r"Rector[ií]a|Oficina|Departamento|Divisi[oó]n|Centro|Primer Contacto)"
-    r"(?:\s+(?:de\s+la|de\s+los|de\s+las|del|de|en|para|y)?\s*[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñü.]*)*"
+    # El nombre no cruza un punto: «Secretaría Académica. Te…» termina en «Académica» (D48).
+    r"(?:\s+(?:de\s+la|de\s+los|de\s+las|del|de|en|para|y)?\s*[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñü]*)*"
 )
 VACIAS = {"de", "del", "la", "las", "los", "el", "en", "para", "y", "a"}
 

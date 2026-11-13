@@ -143,9 +143,11 @@ def _hay(patron: str, texto: str) -> bool:
 
 NEGACION_BENEFICIO = r"\b(no se de|sin|ningun|ninguna|no hubo|no pidio|no me pidio)\s+(\w+\s+){0,2}(pago|dinero|regalo|beneficio|nada)\b"
 BENEFICIO = (r"\b(dinero|pesos?|\$\s?\d+|pag(o|os|ar|ue|ado|aba|aste|aron|ara|uen|ando)|le pague|transferencia|deposit\w*"
-             r"|botell\w*|regal\w*|obsequi\w*|croquet\w*|aport\w*|cooperacion|donacion|mordida|soborn\w*|cuota\w*)\b")
+             r"|botell\w*|regal\w*|obsequi\w*|croquet\w*|aport\w*|cooperacion|donacion|mordida|soborn\w*|cuota\w*"
+             # Expresiones coloquiales de las pruebas con Gemini del 13 nov 2026 (D50).
+             r"|billetes?|lana|varo|moche|favor (monetario|economico))\b")
 VENTAJA = (r"\b(aprob\w*|reprob\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|cien|100|puntos?|materia)\b")
-NEXO = (r"(a cambio de|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
+NEXO = (r"(a ?cambio de|con (un|una|unos|unas) \w+ (me|te|lo|la) (pas\w*|aprueb\w*|acredit\w*)|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
         r"|si no (le )?(doy|pago|entrego|deposito)|quienes (den|aporten|paguen|entreguen)|tendran (100|cien)"
         r"|recibir\w* (puntos|cien|100)|puede cambiar (mi|la|las) (nota|calificacion)|conoce a alguien que puede"
         r"|condicion\w* (a|por|con) (una |la |mi |el )?(calificacion|nota|aprobar|pasar|acreditar)"
@@ -306,7 +308,9 @@ INTERROGATIVOS = r"^(que|quien|quienes|donde|cuando|como|cual|cuales|cuanto|cuan
 
 
 def es_pregunta(mensaje: str) -> bool:
-    return "?" in mensaje or "¿" in mensaje or bool(re.match(INTERROGATIVOS, normalizar(mensaje).strip()))
+    # También «en qué…», «a dónde…», «con quién…» (D49).
+    t = re.sub(r"^(en|a|de|con|para|por|hasta|desde)\s+", "", normalizar(mensaje).strip())
+    return "?" in mensaje or "¿" in mensaje or bool(re.match(INTERROGATIVOS, t))
 
 
 def _sin_alargamientos(texto: str) -> str:
