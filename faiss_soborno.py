@@ -254,25 +254,17 @@ class BuscadorFaiss:
         `pregunta` solo sirve para reconocer la intención; al servicio se envía una consulta
         construida con la etapa y los hechos del caso, nunca el texto del estudiante.
         """
-        from chatbot_soborno import admite
+        from chatbot_soborno import admite, seleccionar
         from sprint3_soborno import intencion_pregunta
 
         consulta = estado.get("consulta") or intencion_pregunta(pregunta)
         fragmentos = self.fragmentos["procesos"]
         _, ids = self.indices["procesos"].search(self._vector(consulta_vectorial(estado, consulta)), len(fragmentos))
-        elegidos: list[dict[str, Any]] = []
-        apartados: set[str] = set()
-        for i in ids[0]:
-            if not 0 <= int(i) < len(fragmentos):
-                continue
-            fragmento = fragmentos[int(i)]
-            if fragmento["apartado"] in apartados or not admite(fragmento, estado, consulta):
-                continue
-            elegidos.append(fragmento)
-            apartados.add(fragmento["apartado"])
-            if len(elegidos) >= limite:
-                break
-        return elegidos
+        ordenados = [fragmentos[int(i)] for i in ids[0]
+                     if 0 <= int(i) < len(fragmentos) and admite(fragmentos[int(i)], estado, consulta)]
+        # Los apartados prioritarios de la etapa encabezan la lista igual que en el modo local
+        # (prueba del 13 nov 2026: sin ellos, el 5.1 con el artículo 21.1 quedaba fuera, D56).
+        return seleccionar(ordenados, estado, consulta, limite)
 
     def buscar_registro(self, limite: int = 2) -> list[dict[str, Any]]:
         """Consulta los relatos sin remitir al servicio el nombre escrito por el usuario."""

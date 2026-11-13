@@ -69,9 +69,53 @@ EXPANSION_REGLAS = {
     "B16": "peligro emergencia proteccion",
 }
 PARRAFOS_CLAVE = {
+    "5.1": "El artículo 21.1",
     "5.5": "Los artículos 39–46",
     "7.3": "Se recomienda valoración legal temprana",
 }
+PRIORIDADES_CONSULTA = {
+    "encargado": ["6.2"], "ubicacion": ["6.2"], "contacto": ["6.2"], "coordinacion": ["6.2"],
+    "programa": ["5.2"], "relacion": ["5.2", "5.1"], "plazo": ["5.6"], "legal": ["7.4"], "personal": ["4.1"],
+}
+
+
+def apartados_prioritarios(estado: dict[str, Any], intencion: str | None) -> list[str]:
+    """Apartados que encabezan la recuperación de cada etapa; son parte de la orientación, no de
+    la búsqueda, y por eso valen igual en el modo local y en FAISS."""
+    if intencion:
+        return PRIORIDADES_CONSULTA.get(intencion, [])
+    if estado.get("prioridad") == "urgente":
+        return ["5.5", "7.3"]
+    if estado.get("tipo_riesgo") and estado.get("estado") == "q3":
+        return ["5.5", "5.6"]
+    if estado.get("estado") in ("q3", "q5", "q6"):
+        return ["5.1", "7.3", "4.2"]
+    if (estado.get("ficha") or {}).get("procedencia") == "indirecta":
+        return ["8.1"]
+    return []
+
+
+def seleccionar(ordenados: list[dict[str, Any]], estado: dict[str, Any], intencion: str | None,
+                limite: int) -> list[dict[str, Any]]:
+    """Primero los apartados prioritarios de la etapa (con su párrafo clave); después, el resto en el
+    orden recibido (BM25 o similitud de vectores), un fragmento por apartado."""
+    elegidos: list[dict[str, Any]] = []
+    usados: set[str] = set()
+    for apartado in apartados_prioritarios(estado, intencion):
+        inicio = PARRAFOS_CLAVE.get(apartado)
+        del_apartado = [f for f in ordenados if f.get("apartado") == apartado]
+        candidato = next((f for f in del_apartado if inicio and f["texto"].startswith(inicio)),
+                         del_apartado[0] if del_apartado else None)
+        if candidato is not None:
+            elegidos.append(candidato)
+            usados.add(apartado)
+    for fragmento in ordenados:
+        if len(elegidos) >= limite:
+            break
+        if fragmento.get("apartado") not in usados:
+            elegidos.append(fragmento)
+            usados.add(fragmento.get("apartado"))
+    return elegidos[:limite]
 
 
 def palabras(texto: str) -> list[str]:
@@ -207,46 +251,7 @@ class Buscador:
             if puntuacion:
                 resultados.append((puntuacion, fragmento))
         resultados.sort(key=lambda x: x[0], reverse=True)
-        if intencion:
-            prioridades = {
-                "encargado": ["6.2"], "ubicacion": ["6.2"],
-                "contacto": ["6.2"], "coordinacion": ["6.2"],
-                "programa": ["5.2"], "relacion": ["5.2", "5.1"],
-                "plazo": ["5.6"], "legal": ["7.4"],
-                "personal": ["4.1"],
-            }.get(intencion, [])
-        elif estado["prioridad"] == "urgente":
-            prioridades = ["5.5", "7.3", "8.2"]
-        elif estado.get("tipo_riesgo") and estado.get("estado") == "q3":
-            prioridades = ["5.5", "5.6", "8.2"]
-        elif estado.get("estado") in ("q3", "q5", "q6"):
-            prioridades = ["5.1", "7.3", "4.2"]
-        elif (estado.get("ficha") or {}).get("procedencia") == "indirecta":
-            prioridades = ["8.1", "8.2"]
-        else:
-            prioridades = []
-        elegidos: list[dict[str, Any]] = []
-        secciones_usadas: set[str] = set()
-        for seccion in prioridades:
-            inicio = PARRAFOS_CLAVE.get(seccion)
-            candidato = next(
-                (f for _, f in resultados if f["titulo"].startswith(seccion)
-                 and (inicio is None or f["texto"].startswith(inicio))),
-                None,
-            )
-            if candidato is None:
-                candidato = next((f for _, f in resultados if f["titulo"].startswith(seccion)), None)
-            if candidato is not None:
-                elegidos.append(candidato)
-                secciones_usadas.add(seccion)
-        for _, fragmento in resultados:
-            seccion = fragmento["titulo"].split()[0]
-            if seccion not in secciones_usadas:
-                elegidos.append(fragmento)
-                secciones_usadas.add(seccion)
-            if len(elegidos) >= limite:
-                break
-        return elegidos[:limite]
+        return seleccionar([f for _, f in resultados], estado, intencion, limite)
 
 
 DESTINO_PREGUNTA = {"B10": "q3", "B14": "q5", "B15": "q6", "B16": "qS"}

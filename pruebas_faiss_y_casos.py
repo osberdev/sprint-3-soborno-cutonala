@@ -240,6 +240,15 @@ class PruebasBuscadorFaiss(unittest.TestCase):
         for privado in ("Ramírez", "500", "pesos"):
             self.assertNotIn(privado, enviados)
 
+    def test_apartados_prioritarios_iguales_en_ambos_modos(self):
+        # D56: con vectores reales, el 5.1 que encabeza q3 era otro párrafo o no aparecía.
+        mensaje = "Un docente me pidió dinero a cambio de aprobar la materia."
+        local = ChatSoborno().responder(mensaje)
+        faiss = ChatSoborno(buscador=self.buscador).responder(mensaje)
+        self.assertEqual(faiss["fragmentos"][0]["apartado"], local["fragmentos"][0]["apartado"])
+        self.assertTrue(faiss["fragmentos"][0]["texto"].startswith("El artículo 21.1"))
+        self.assertIn("artículo 21.1", faiss["respuesta_chatbot"])
+
     def test_cambio_en_la_base_exige_reindexar(self):
         from faiss_soborno import BuscadorFaiss
         with patch("faiss_soborno._huella", return_value={"distinta": True}):
