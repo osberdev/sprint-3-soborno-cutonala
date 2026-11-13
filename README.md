@@ -40,12 +40,17 @@ Mensaje del estudiante
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
 | `pruebas_chatbot.py` | Pruebas de integración del chat en modo local. |
+| `pruebas_persistencia.py` | Pruebas de la reanudación de un caso entre ejecuciones: mismo resultado que sin interrupción, sin texto de los mensajes en el archivo, datos inválidos rechazados. |
 | `pruebas_gemini.py` | Pruebas de la integración con Gemini mediante un servicio simulado: qué se envía, datos inventados, extractor y fallos. |
 | `pruebas_conocimientos.py` | Comprueba que los archivos de conocimiento coinciden textualmente con la investigación y que nada excluido llega al estudiante. |
 | `escenarios_aceptacion.py` | Criterios de aceptación del autómata nuevo (escenarios 9.1–9.10 y guion de prueba manual). |
 | `pruebas_automata.py` | Comprueba que la tabla de transiciones coincide con el diagrama aprobado y cubre casos límite. |
 | `pruebas_faiss_y_casos.py` | Nueve pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
+
+### Retomar un caso entre ejecuciones
+
+En la conversación interactiva, el caso se guarda después de cada turno en `caso_guardado.local.json`, excluido de Git. El archivo contiene solo el estado del autómata, la pregunta pendiente, el camino recorrido y la ficha (indicadores como «hubo intercambio» o «amenaza académica» y las decisiones de sí o no); nunca el texto de los mensajes ni las respuestas. Al iniciar, si existe un caso guardado, el programa pregunta si se retoma: «sí» continúa donde se quedó, con la pregunta pendiente; «no» lo borra. Durante la conversación, `olvidar` o `reset` borran el archivo. `--sin-guardar` desactiva el guardado; `--demo` y `--pregunta` nunca escriben en disco. Un archivo dañado o alterado (estado, flecha o valor fuera del autómata) se ignora con un aviso.
 
 El modo predeterminado conserva la recuperación por términos y prioridades documentales. Existe además un modo FAISS opcional basado en los dos PDF individuales. La memoria conserva información durante la sesión y se reinicia con `reset`. Una pregunta general por antecedentes consulta el registro sin incorporarse como hecho del caso personal.
 
@@ -102,6 +107,7 @@ Con Python 3.10 o posterior, desde esta carpeta:
 ```bash
 python3 pruebas_chatbot.py
 python3 pruebas_gemini.py
+python3 pruebas_persistencia.py
 python3 pruebas_faiss_y_casos.py
 python3 pruebas_conocimientos.py
 python3 pruebas_automata.py
@@ -142,6 +148,6 @@ Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Su
 ## Límites de la versión
 
 - El reconocimiento depende de reglas y coincidencias de palabras; necesita pruebas adicionales con otras redacciones.
-- No tiene interfaz gráfica, expediente persistente, folio ni envío de denuncias.
+- No tiene interfaz gráfica, folio ni envío de denuncias. El caso guardado es local y de una sola persona; no es un expediente.
 - La verificación de la redacción de Gemini comprueba datos concretos (correos, enlaces, cifras, plazos e instancias); no comprueba el sentido de cada afirmación.
 - Para las pruebas se utilizan relatos ficticios sin identificar personas reales.

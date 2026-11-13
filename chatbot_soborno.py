@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from datetime import datetime
 import json
 import math
 import os
@@ -19,7 +20,7 @@ import sys
 from typing import Any
 
 from casos_consulta import resumen_registro
-from automata_soborno import REGLAS, SesionAutomata
+from automata_soborno import ESTADOS, REGLAS, SesionAutomata, respuesta_si_no
 from gemini_soborno import ExtractorGemini, describir_fallo, redactar
 from sprint3_soborno import intencion_pregunta, normalizar
 
@@ -281,12 +282,52 @@ def texto_visible(fragmento: dict[str, Any]) -> str:
     return texto
 
 
+CASO_GUARDADO = Path(__file__).resolve().parent / "caso_guardado.local.json"
+
+
+class CasoGuardado:
+    """Caso guardado entre ejecuciones (iteración 5).
+
+    Solo contiene el estado del autómata y la ficha (indicadores y decisiones), nunca el
+    texto de los mensajes. El archivo está excluido de Git y se escribe de forma atómica.
+    """
+
+    def __init__(self, ruta: Path = CASO_GUARDADO) -> None:
+        self.ruta = ruta
+
+    def existe(self) -> bool:
+        return self.ruta.exists()
+
+    def guardar(self, sesion: SesionAutomata) -> None:
+        datos = sesion.exportar()
+        datos["guardado"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+        temporal = self.ruta.with_suffix(".tmp")
+        temporal.write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(temporal, self.ruta)
+
+    def cargar(self, extractor: Any = None) -> tuple[SesionAutomata | None, str | None]:
+        """Devuelve la sesión y la fecha de guardado, o (None, motivo) si no se puede usar."""
+        try:
+            datos = json.loads(self.ruta.read_text(encoding="utf-8"))
+            return SesionAutomata.desde_dict(datos, extractor=extractor), datos.get("guardado")
+        except FileNotFoundError:
+            return None, None
+        except (ValueError, TypeError, json.JSONDecodeError) as error:
+            return None, f"el caso guardado no es válido ({error}); se ignora"
+
+    def borrar(self) -> None:
+        self.ruta.unlink(missing_ok=True)
+
+
 class ChatSoborno:
-    def __init__(self, buscador: Any | None = None, extractor_gemini: bool = False) -> None:
+    def __init__(self, buscador: Any | None = None, extractor_gemini: bool = False,
+                 guardado: CasoGuardado | None = None, sesion: SesionAutomata | None = None) -> None:
         # El extractor de Gemini es opcional y separado de la redacción: envía el texto del
         # mensaje al servicio, mientras que la redacción solo envía la tarjeta del estado.
         self.extractor = ExtractorGemini() if extractor_gemini else None
-        self.sesion = SesionAutomata(extractor=self.extractor)
+        self.sesion = sesion or SesionAutomata(extractor=self.extractor)
+        self.sesion.extractor = self.extractor
+        self.guardado = guardado
         self.buscador = buscador if buscador is not None else Buscador()
         self.extractos_mostrados: set[str] = set()
 
@@ -294,6 +335,11 @@ class ChatSoborno:
         if self.extractor:
             self.extractor.descartados = []
         estado = self.sesion.procesar(mensaje)
+        if self.guardado:
+            try:
+                self.guardado.guardar(self.sesion)
+            except OSError:
+                pass  # guardar es una comodidad; la conversación sigue aunque falle el disco
         if "B2" in estado["reglas"]:
             respuesta, registros = resumen_registro(mensaje)
             # Una pregunta por referencias no es un hecho del caso del estudiante.
@@ -447,6 +493,32 @@ def mostrar(resultado: dict[str, Any]) -> None:
         print("Se usó la búsqueda local para conservar la orientación.")
 
 
+def retomar_si_existe(chat: "ChatSoborno", guardado: CasoGuardado, buscador: Any, extractor_gemini: bool,
+                      entrada=input) -> "ChatSoborno":
+    """Ofrece retomar el caso guardado; un «no» lo borra (iteración 5)."""
+    if not guardado.existe():
+        return chat
+    sesion, fecha_o_motivo = guardado.cargar()
+    if sesion is None:
+        print(f"Aviso: {fecha_o_motivo}.")
+        return chat
+    info = ESTADOS[sesion.estado]
+    print(f"Hay un caso guardado el {fecha_o_motivo or 'día anterior'} en {sesion.estado} · {info['nombre']}.")
+    while True:
+        try:
+            respuesta = respuesta_si_no(entrada("¿Lo retomamos? Responde sí o no: ").strip())
+        except (EOFError, KeyboardInterrupt):
+            respuesta = "si"
+        if respuesta in ("si", "no"):
+            break
+    if respuesta == "no":
+        guardado.borrar()
+        print("Caso guardado borrado. Empezamos de nuevo.")
+        return chat
+    print("RESPUESTA:", sesion.texto_reanudacion())
+    return ChatSoborno(buscador=buscador, extractor_gemini=extractor_gemini, guardado=guardado, sesion=sesion)
+
+
 DEMO = [
     "¿Dónde encuentro Primer Contacto en CUTonalá?",
     "Se comenta que un profesor llamado X aprueba por regalos.",
@@ -461,6 +533,8 @@ def main() -> int:
     parser.add_argument("--demo", action="store_true", help="muestra una conversación ficticia reproducible")
     parser.add_argument("--pregunta", help="procesa un solo mensaje y termina")
     parser.add_argument("--gemini", action="store_true", help="usa Gemini para redactar la orientación")
+    parser.add_argument("--sin-guardar", action="store_true",
+                        help="no guarda el caso entre ejecuciones (se guarda por defecto en la conversación interactiva)")
     parser.add_argument("--extractor-gemini", action="store_true",
                         help="usa Gemini para detectar hechos (envía el texto de cada mensaje)")
     parser.add_argument("--faiss", action="store_true", help="recupera de los PDF con el índice FAISS individual")
@@ -491,7 +565,10 @@ def main() -> int:
     except (RuntimeError, FileNotFoundError, ValueError) as error:
         print(f"No se pudo cargar FAISS: {error}", file=sys.stderr)
         return 2
-    chat = ChatSoborno(buscador=buscador, extractor_gemini=args.extractor_gemini)
+    pendientes = DEMO.copy() if args.demo else [args.pregunta] if args.pregunta else None
+    # El caso se guarda solo en la conversación interactiva; la demostración y --pregunta no tocan el disco.
+    guardado = None if (pendientes is not None or args.sin_guardar) else CasoGuardado()
+    chat = ChatSoborno(buscador=buscador, extractor_gemini=args.extractor_gemini, guardado=guardado)
     if (args.gemini or args.extractor_gemini) and not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
         print("No hay clave para Gemini. Ejecuta sin --gemini ni --extractor-gemini para la demostración local.",
               file=sys.stderr)
@@ -499,10 +576,13 @@ def main() -> int:
     if args.extractor_gemini:
         print("Aviso: el extractor envía a Gemini el texto de cada mensaje (sin guardarlo en el servicio). "
               "Las consultas de antecedentes y las respuestas de sí o no no se envían.")
-    pendientes = DEMO.copy() if args.demo else [args.pregunta] if args.pregunta else None
     if pendientes is None:
         print("Chatbot individual · soborno académico · CUTonalá")
         print("Usa relatos ficticios. Escribe 'reset' para reiniciar o 'salir' para terminar.")
+        if guardado:
+            print(f"El caso se guarda en {guardado.ruta.name}: solo el estado y los hechos, sin tus mensajes. "
+                  "Escribe 'olvidar' para borrarlo.")
+            chat = retomar_si_existe(chat, guardado, buscador, args.extractor_gemini)
     while True:
         if pendientes is not None:
             if not pendientes:
@@ -517,9 +597,12 @@ def main() -> int:
                 break
         if mensaje.casefold() == "salir":
             break
-        if mensaje.casefold() == "reset":
-            chat = ChatSoborno(buscador=buscador, extractor_gemini=args.extractor_gemini)
-            print("Caso reiniciado; la base de conocimientos sigue disponible.")
+        if mensaje.casefold() in ("reset", "olvidar"):
+            if guardado:
+                guardado.borrar()
+            chat = ChatSoborno(buscador=buscador, extractor_gemini=args.extractor_gemini, guardado=guardado)
+            print("Caso borrado y reiniciado; la base de conocimientos sigue disponible."
+                  if guardado else "Caso reiniciado; la base de conocimientos sigue disponible.")
             continue
         if args.gemini or args.extractor_gemini:
             print("Consultando Gemini (espera limitada; hay respuesta local si falla)...", flush=True)

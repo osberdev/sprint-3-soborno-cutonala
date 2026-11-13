@@ -73,6 +73,7 @@
 | 2 · Autómata | D01, D02, D03, D06, D11–D18; D10 en parte (se eliminó la función duplicada de Gemini) | `escenarios_aceptacion.py` (20 escenarios) y `pruebas_automata.py` (conformidad con el diagrama y casos límite) |
 | 3 · Pruebas manuales (12–13 nov) | D20–D37; D33 con la opción A aprobada | `PruebasRegresionPruebaManual*` en `pruebas_automata.py`, escenarios G9b y G11, `pruebas_conocimientos.py` |
 | 4 · Gemini | D07, D08, D19, D38–D46, D48–D50; extractor verificado con el servicio real (13 nov 2026); D10 en la configuración del modelo y la versión de `google-genai` (el conteo de pruebas del README queda para la iteración 7) | `pruebas_gemini.py`: qué se envía, instrucción en positivo, siete datos inventados que regresan a la respuesta local, pregunta informativa trampa, extractor con citas y fallos del servicio |
+| 5 · Persistencia | D42, D47, D52 (autómata); reanudación de un caso entre ejecuciones | `pruebas_persistencia.py` (mismo resultado con y sin interrupción, sin texto de mensajes en el archivo, ocho alteraciones rechazadas, retomar o borrar al iniciar) y `PruebasHipotesisYPagos` |
 
 Los defectos G01–G06 del diagrama no se corrigen en la imagen: la implementación sigue el autómata aprobado (q6 Asesoría jurídica, q5 Autoridad externa, aceptación en q2–q6, lazo B8 en q3, B10 con (1,0)).
 

@@ -11,7 +11,7 @@ respuesta local; el chat puede pedir a Gemini que la redacte sin cambiar la ruta
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 import difflib
 import re
 from typing import Any, Callable
@@ -139,6 +139,13 @@ AMENAZA_TEXTO = ("Ante una amenaza o represalia, la normativa universitaria cont
 FUENTES_ESTADO = {"q1": ["S01"], "q2": ["S10"], "q3": ["S01", "S05", "S06"], "q4": ["S04", "S11"],
                   "q5": ["S13", "S17"], "q6": ["S12", "S18"], "qS": ["S01", "S10"]}
 SALUDO = r"^(hola|buenas|buenos dias|buenas tardes|buenas noches|que tal|hey)\b"
+
+
+def etiqueta_estado(estado: str) -> str:
+    """«Asesoría jurídica (Procuraduría Social de Jalisco)»; sin repetir el nombre si la instancia ya lo dice."""
+    info = ESTADOS[estado]
+    instancia = info["instancia"]
+    return instancia if instancia.startswith(info["nombre"]) else f"{info['nombre']} ({instancia})"
 
 
 def destino(regla: str, origen: str) -> str:
@@ -480,6 +487,80 @@ class SesionAutomata:
         self._preguntar(None)
         self._preguntar(self._pregunta_del_estado())
 
+    # -- persistencia (iteración 5) -------------------------------------------
+    # Se guarda el estado de control y la ficha: indicadores, enumeraciones y decisiones.
+    # Nunca el texto de los mensajes ni las respuestas del bot.
+    VERSION_GUARDADO = 1
+    VALORES_FICHA = {
+        "procedencia": {None, "directa", "indirecta"},
+        "participacion": {None, "recibio", "ofrecio", "entrego", "pago_bajo_presion"},
+        "amenaza": {None, "academica", "fisica"},
+        "peligro_actual": {None, True, False},
+        "otro_tema": {None} | {nombre for nombre, _ in OTROS_TEMAS},
+    }
+
+    def exportar(self) -> dict[str, Any]:
+        return {
+            "version": self.VERSION_GUARDADO,
+            "estado": self.estado,
+            "pendiente": self.pendiente,
+            "intentos": self.intentos,
+            "turnos": self.turnos,
+            "camino": list(self.camino),
+            "ficha": self.ficha.como_dict(),
+        }
+
+    @classmethod
+    def desde_dict(cls, datos: dict[str, Any], extractor: Callable[[str], set[str]] | None = None
+                   ) -> "SesionAutomata":
+        """Reconstruye una sesión guardada. Lanza ValueError si los datos no son un caso válido."""
+        if datos.get("version") != cls.VERSION_GUARDADO:
+            raise ValueError("versión de caso guardado desconocida")
+        estado, pendiente, camino = datos.get("estado"), datos.get("pendiente"), datos.get("camino")
+        if estado not in ESTADOS:
+            raise ValueError(f"estado desconocido: {estado!r}")
+        if pendiente is not None and pendiente not in PREGUNTAS:
+            raise ValueError(f"pregunta pendiente desconocida: {pendiente!r}")
+        if not isinstance(camino, list):
+            raise ValueError("camino inválido")
+        # El camino debe poder recorrerse desde q1 con flechas del diagrama.
+        origen = "q1"
+        try:
+            for regla in camino:
+                origen = destino(regla, origen)
+        except KeyError as error:
+            raise ValueError(f"camino con una flecha inexistente: {camino!r}") from error
+        if camino and estado != "qS" and origen != estado:
+            raise ValueError("el camino no termina en el estado guardado")
+        campos = {f.name: f for f in fields(Ficha)}
+        ficha_datos = datos.get("ficha")
+        if not isinstance(ficha_datos, dict) or set(ficha_datos) - set(campos):
+            raise ValueError("ficha inválida")
+        for nombre, valor in ficha_datos.items():
+            permitidos = cls.VALORES_FICHA.get(nombre)
+            if nombre == "decisiones":
+                if not isinstance(valor, dict) or any(k not in PREGUNTAS or v not in ("si", "no", "desconocido")
+                                                      for k, v in valor.items()):
+                    raise ValueError("decisiones inválidas")
+            elif permitidos is not None:
+                if valor not in permitidos:
+                    raise ValueError(f"valor inválido en la ficha: {nombre}")
+            elif not isinstance(valor, bool):
+                raise ValueError(f"valor inválido en la ficha: {nombre}")
+        sesion = cls(extractor=extractor)
+        sesion.estado, sesion.pendiente, sesion.camino = estado, pendiente, list(camino)
+        sesion.intentos = int(datos.get("intentos", 0))
+        sesion.turnos = int(datos.get("turnos", 0))
+        sesion.ficha = Ficha(**ficha_datos)
+        return sesion
+
+    def texto_reanudacion(self) -> str:
+        if self.estado in ("q0", "q1") and not self._hay_caso():
+            texto = "Retomamos la conversación. Cuéntame qué pasó o pregúntame por Primer Contacto."
+        else:
+            texto = f"Retomamos tu caso donde lo dejamos: {etiqueta_estado(self.estado)}."
+        return texto + (" " + self.texto_pregunta() if self.pendiente else "")
+
     def _hechos_adicionales(self, mensaje: str) -> set[str]:
         """Consulta el extractor opcional. Una respuesta de sí o no no se le envía; si falla,
         el turno sigue solo con las reglas locales."""
@@ -761,8 +842,7 @@ class SesionAutomata:
         if "B17" in reglas:
             texto = "Me alegra que estés a salvo."
             if e != "q1":
-                info = ESTADOS[e]
-                texto += (f" Retomamos tu caso donde lo dejamos: {info['nombre']} ({info['instancia']}). "
+                texto += (f" Retomamos tu caso donde lo dejamos: {etiqueta_estado(e)}. "
                           "Lo que me contaste sigue registrado.")
             elif self._hay_caso():
                 texto += " Retomamos tu caso donde lo dejamos; lo que me contaste sigue registrado."
