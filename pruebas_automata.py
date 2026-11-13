@@ -332,5 +332,49 @@ class PruebasFidelidadDeNombres(unittest.TestCase):
         self.assertLessEqual(citadas, set(fuentes))
 
 
+class PruebasHipotesisYPagos(unittest.TestCase):
+    """D42 (preguntas hipotéticas), D47 (pagos ordinarios) y D52 (verbos con cambio de raíz)."""
+
+    RELATO = "Un docente me pidió dinero a cambio de aprobar la materia."
+
+    def test_una_pregunta_hipotetica_no_se_registra_como_hecho(self):
+        sesion, r = conversar(self.RELATO, "¿Y si me amenaza con reprobarme?")
+        self.assertEqual((r["estado"], r["reglas"], r["pendiente"], r["hipotetica"]), ("q3", [], "B14", True))
+        self.assertIsNone(r["ficha"]["amenaza"])
+        self.assertIn("no lo registro", r["respuesta"])
+        self.assertIn("artículos 39–46", r["respuesta"])
+        self.assertEqual(sesion.procesar("sí")["estado"], "q5")  # la pregunta pendiente sigue en pie
+
+    def test_una_hipotesis_no_abre_un_caso(self):
+        for mensaje in ("¿Y si un profe me pide dinero para pasar?",
+                        "¿Qué pasaría si le ofreciera dinero al profe para que me pase?",
+                        "En caso de que me pida dinero, ¿qué hago?"):
+            with self.subTest(mensaje=mensaje):
+                _, r = conversar(mensaje)
+                self.assertEqual((r["estado"], r["reglas"], r["hipotetica"]), ("q0", [], True))
+
+    def test_lo_ocurrido_no_se_confunde_con_una_hipotesis(self):
+        for mensaje in ("¿Qué hago si un profe me pidió dinero para pasar?",
+                        "Me pidió dinero y si no le pago me reprueba."):
+            with self.subTest(mensaje=mensaje):
+                _, r = conversar(mensaje)
+                self.assertEqual((r["estado"], r["hipotetica"]), ("q3", False))
+
+    def test_pago_ordinario_no_cambia_la_participacion(self):
+        _, r = conversar(self.RELATO, "Ya pagué la inscripción y quiero saber mi calificación.")
+        self.assertEqual((r["ficha"]["participacion"], r["pendiente"]), ("recibio", "B14"))
+        self.assertNotIn("Queda anotado", r["respuesta"])
+
+    def test_pago_vinculado_despues_si_es_participacion(self):
+        _, r = conversar(self.RELATO, "Ya le pagué lo que me pidió.")
+        self.assertEqual((r["ficha"]["participacion"], r["pendiente"]), ("entrego", "B15"))
+
+    def test_verbos_con_cambio_de_raiz(self):
+        for mensaje in ("Me pidió dinero y si no le pago me reprueba.", "El profe dice que si le pagas te aprueba."):
+            with self.subTest(mensaje=mensaje):
+                _, r = conversar(mensaje)
+                self.assertEqual(r["estado"], "q3")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

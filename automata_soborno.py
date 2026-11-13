@@ -159,12 +159,12 @@ def _hay(patron: str, texto: str) -> bool:
 
 
 NEGACION_BENEFICIO = r"\b(no se de|sin|ningun|ninguna|no hubo|no pidio|no me pidio)\s+(\w+\s+){0,2}(pago|dinero|regalo|beneficio|nada)\b"
-BENEFICIO = (r"\b(dinero|pesos?|\$\s?\d+|pag(o|os|ar|ue|ado|aba|aste|aron|ara|uen|ando)|le pague|transferencia|deposit\w*"
+BENEFICIO = (r"\b(dinero|pesos?|\$\s?\d+|pag(o|os|ar|ue|ues|ado|aba|aste|aron|ara|uen|ando|a|as|an|amos)|le pague|transferencia|deposit\w*"
              r"|botell\w*|regal\w*|obsequi\w*|croquet\w*|aport\w*|cooperacion|donacion|mordida|soborn\w*|cuota\w*"
              # Expresiones coloquiales de las pruebas con Gemini del 13 nov 2026 (D50).
              r"|billetes?|lana|varo|moche|favor (monetario|economico))\b")
-VENTAJA = (r"\b(aprob\w*|reprob\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|cien|100|puntos?|materia)\b")
-NEXO = (r"(a ?cambio de|con (un|una|unos|unas) \w+ (me|te|lo|la) (pas\w*|aprueb\w*|acredit\w*)|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
+VENTAJA = (r"\b(aprob\w*|reprob\w*|aprueb\w*|reprueb\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|cien|100|puntos?|materia)\b")
+NEXO = (r"(a ?cambio de|si (le |te )?(pag\w*|das|doy|da|entreg\w*|deposit\w*) .{0,25}(aprueb\w*|pas[ae]\w*|acredit\w*|sub\w*)|con (un|una|unos|unas) \w+ (me|te|lo|la) (pas\w*|aprueb\w*|acredit\w*)|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
         r"|si no (le )?(doy|pago|entrego|deposito)|quienes (den|aporten|paguen|entreguen)|tendran (100|cien)"
         r"|recibir\w* (puntos|cien|100)|puede cambiar (mi|la|las) (nota|calificacion)|conoce a alguien que puede"
         r"|condicion\w* (a|por|con) (una |la |mi |el )?(calificacion|nota|aprobar|pasar|acreditar)"
@@ -173,6 +173,15 @@ EXIGENCIA = (r"\b(me pidio|me pide|me piden|nos pidio|nos pide|me exig\w*|me cob
              r"|dice que quienes|me dijo que .{0,40}si no)")
 OFRECIMIENTO = r"\b(le ofreci|ofreci|le propuse|le di|le entregue|le pague|le regale|le deposite|le transferi|le lleve|acepte pagar)\b"
 PAGO_PROPIO = r"\b(pague|le pague|deposite|transferi|le di|le entregue)\b"
+# Pagos institucionales ordinarios: no forman parte del intercambio salvo que el mensaje
+# los vincule con él (D47).
+PAGO_ORDINARIO = (r"\b(inscripcion|reinscripcion|colegiatura|matricula|credencial|arancel\w*|tramite\w*|kardex"
+                  r"|constancia\w*|titulacion|estacionamiento|cuota de recuperacion)\b")
+# Referencia a un pago ya contado: «ese pago», «lo que le di» (D47).
+REFERENCIA_PAGO = r"\b(es[ea]|este|el mismo) (pago|dinero|deposito|transferencia)\b|\blo que (le )?(pague|di|deposite)\b"
+# Planteamientos hipotéticos: «¿y si me amenaza…?», «en caso de que…», «si me pidiera…» (D42).
+HIPOTETICA = (r"^\W*(y si|que pasa si|que pasaria si|que tal si|en caso de que|suponiendo|supongamos|hipotetic\w*)\b"
+              r"|\ben caso de que\b|\bhipotetic\w*|\bsi (me |le |te |lo |la |nos )?\w+(ara|iera|ase|iese)\b")
 PRESION = r"\b(por miedo|por temor|tenia miedo|tuve miedo|me presion\w*|bajo presion|me obligo|me obligaron|me forz\w*)"
 AFECTACION = (r"\b(miedo|temor|angusti\w*|ansie\w*|estres\w*|deprim\w*|triste\w*|culpa\w*|no puedo dormir|me siento mal"
               r"|paranoi\w*|desconfi\w*|asustad\w*|preocupad\w*)")
@@ -183,8 +192,8 @@ IMPLICITO = (r"\b(insinu\w*|dio a entender|sugiri\w*|indirecta|regalit\w*|detall
 AMENAZA_FISICA = r"\b(golpe\w*|pegar\w*|agredi\w*|lastim\w*|matar\w*|herir\w*|violencia fisica|hacerme dano|me va a hacer algo)"
 PELIGRO_ACTUAL = (r"\b(ahora mismo|en este momento|esta afuera|me esta siguiendo|me sigue|estoy en peligro"
                   r"|me esta esperando|esta aqui)")
-AMENAZA = (r"(amenaz\w*|perjudic\w*|obstaculo\w*|si no .{0,40}(reprob\w*|bajar\w*|quitar\w*)"
-           r"|(reprob\w*|bajar(me)? la (nota|calificacion)).{0,40}si no|me va a reprobar)")
+AMENAZA = (r"(amenaz\w*|perjudic\w*|obstaculo\w*|si no .{0,40}(reprob\w*|reprueb\w*|bajar\w*|quitar\w*)"
+           r"|(reprob\w*|reprueb\w*|bajar(me)? la (nota|calificacion)).{0,40}si no|me va a reprobar)")
 REPRESALIA = (r"(despues de (reportar|denunciar|quejarme)|desde que (lo )?(reporte|denuncie)|tras reportar|represal\w*"
               r"|me castig\w*|en venganza)")
 NOTA_CUESTIONADA = (r"(publicaron mi (nota|calificacion)|salio mi (nota|calificacion)|(nota|calificacion) injusta"
@@ -289,6 +298,7 @@ def extraer_hechos(mensaje: str, adicionales: set[str] | frozenset[str] = frozen
     beneficio, ventaja, nexo = b["beneficio"], b["ventaja"], b["nexo"]
     exigencia, ofrecimiento = b["exigencia"], b["ofrecimiento"]
     otro_tema = next((nombre for nombre, patron in OTROS_TEMAS if _hay(patron, t)), None)
+    pago_ordinario = b["pago_propio"] and _hay(PAGO_ORDINARIO, t) and not (nexo or exigencia or b["presion"])
     if otro_tema == "cuotas extraordinarias" and nexo:
         otro_tema = None  # una aportación condicionada a la nota sí es posible soborno
     if otro_tema in ("favoritismo", "hostigamiento") and beneficio and (nexo or exigencia or ofrecimiento):
@@ -300,7 +310,10 @@ def extraer_hechos(mensaje: str, adicionales: set[str] | frozenset[str] = frozen
         "nexo": nexo,
         "exigencia": exigencia and beneficio,
         "ofrecimiento": ofrecimiento and beneficio,
-        "pago_propio": b["pago_propio"] and beneficio,
+        "pago_propio": b["pago_propio"] and beneficio and not pago_ordinario,
+        "pago_ordinario": pago_ordinario,
+        "referencia_pago": _hay(REFERENCIA_PAGO, t),
+        "hipotetica": _hay(HIPOTETICA, t),
         "presion": b["presion"],
         "intercambio": beneficio and ventaja and (nexo or exigencia or ofrecimiento),
         "afectacion": b["afectacion"],
@@ -375,6 +388,7 @@ class Ficha:
     participacion: str | None = None          # "recibio" | "ofrecio" | "entrego" | "pago_bajo_presion"
     ofrecio: bool = False                     # hechos propios; cuentan como participación solo si hay intercambio
     pago: bool = False
+    pago_ordinario: bool = False              # «pagué la inscripción»: solo cuenta si después se vincula (D47)
     presion: bool = False
     beneficio: bool = False
     intercambio: bool = False
@@ -394,6 +408,9 @@ class Ficha:
             self.procedencia = "directa"
         self.ofrecio |= h["ofrecimiento"]
         self.pago |= h["pago_propio"]
+        self.pago_ordinario |= h["pago_ordinario"]
+        if h["referencia_pago"] and self.pago_ordinario:
+            self.pago = True
         self.presion |= h["presion"]
         self.beneficio |= h["beneficio"]
         self.intercambio |= h["intercambio"]
@@ -428,6 +445,7 @@ class SesionAutomata:
         self.hechos_gemini: list[str] = []
         self.extractor_consultado = False
         self.sin_dato = False
+        self.hipotetica = False
         self.estado = "q0"
         self.ficha = Ficha()
         self.pendiente: str | None = None
@@ -476,6 +494,16 @@ class SesionAutomata:
             self.fallo_extractor = str(error) or type(error).__name__
             return set()
 
+    def _respuesta_hipotetica(self, h: dict[str, Any]) -> str:
+        texto = "Como lo planteas en hipótesis, no lo registro como un hecho de tu caso."
+        if h["amenaza"] or h["represalia"]:
+            texto += " " + AMENAZA_TEXTO
+        elif h["intercambio"] or h["beneficio"]:
+            texto += " " + FAQ["relacion"][0]
+        elif h["nota_cuestionada"]:
+            texto += " " + FAQ["plazo"][0]
+        return texto + " Si llega a ocurrir, cuéntamelo y lo incorporo."
+
     def _hay_caso(self) -> bool:
         f = self.ficha
         return bool(f.procedencia or f.beneficio or f.implicito or f.afectacion or f.amenaza
@@ -513,6 +541,7 @@ class SesionAutomata:
         self.fallo_extractor = None
         self.extractor_consultado = False
         self.sin_dato = False
+        self.hipotetica = False
         if not mensaje.strip():
             return self._resultado([], None, None, aviso="Mensaje vacío.")
         reglas: list[str] = []
@@ -564,6 +593,11 @@ class SesionAutomata:
             hay_hechos = any(h[k] for k in narrativos + ("ventaja", "otro_tema", "nota_cuestionada"))
         if consulta and not hay_hechos:
             return self._resultado(reglas, consulta, None)
+        # Un planteamiento hipotético con hechos se responde, pero no se registra en el caso
+        # ni mueve el autómata (D42).
+        if hay_hechos and h["hipotetica"]:
+            self.hipotetica = True
+            return self._resultado(reglas, consulta, None, aviso=self._respuesta_hipotetica(h))
         # Una pregunta que la base no responde no abre un caso ni cuenta como respuesta a la
         # pregunta pendiente: se dice que no hay información oficial (regla del profesor, D38).
         if not hay_hechos and es_pregunta(mensaje):
@@ -576,6 +610,8 @@ class SesionAutomata:
             h["intercambio"] = True
         if self.estado == "q0":
             self._mover("B3", reglas)
+        if self.pendiente == "C1" and (h["nexo"] or h["intercambio"]):
+            self.ficha.pago |= self.ficha.pago_ordinario
         self.ficha.actualizar(h)
         salida = self._aplicar_hechos(h, reglas)
         return self._resultado(reglas, consulta, salida, hechos=h)
@@ -628,8 +664,9 @@ class SesionAutomata:
         # reformula o se recuerda una vez y después no se insiste (D22, D31).
         if anterior and self.pendiente == anterior and not reglas:
             aviso = self._contar_intento(anterior)
-            registrado = any(h[k] for k in ("beneficio", "amenaza", "represalia", "afectacion", "exigencia",
-                                            "ofrecimiento", "nota_cuestionada"))
+            # Un pago ordinario («la inscripción») no se anuncia como hecho del caso (D47).
+            registrado = (h["beneficio"] and not h["pago_ordinario"]) or any(
+                h[k] for k in ("amenaza", "represalia", "afectacion", "exigencia", "ofrecimiento", "nota_cuestionada"))
             if registrado:
                 aviso = "Queda anotado en tu caso. " + (aviso or "")
             if aviso:
@@ -670,6 +707,8 @@ class SesionAutomata:
                               "algo más, cuéntamelo.")
             if respuesta == "si":
                 f = self.ficha
+                # «¿Ese pago… estuvo condicionado…?» — sí: el pago ya relatado es parte del intercambio.
+                f.pago |= f.pago_ordinario
                 f.intercambio = True
                 f.procedencia = "directa"
                 f.participacion = ("pago_bajo_presion" if f.presion and f.pago else "entrego" if f.pago
@@ -828,5 +867,6 @@ class SesionAutomata:
             "fallo_extractor": self.fallo_extractor,
             "extractor_consultado": self.extractor_consultado,
             "sin_dato": self.sin_dato,
+            "hipotetica": self.hipotetica,
             "turnos": self.turnos,
         }
