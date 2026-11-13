@@ -70,15 +70,17 @@ def generar(entrada: str, instruccion: str, esquema: dict[str, Any] | None = Non
 # ---------------------------------------------------------------------------
 
 INSTRUCCION_REDACCION = f"""Eres el módulo de orientación sobre soborno académico del chatbot de CUTonalá (Universidad de Guadalajara).
-Redacta en español claro la orientación de este turno para un estudiante.
+Escribe la respuesta que leerá un estudiante, en español claro.
 
-1. Usa solo la TARJETA DEL ESTADO y el CONTEXTO. Si te falta un dato, di que no tienes información oficial sobre ese punto.
-2. Conserva todo lo que dice la orientación base de la tarjeta: instancias, ubicaciones, contactos y pasos. Puedes reordenarla y hacerla más clara.
-3. Copia nombres de oficinas, correos, teléfonos, artículos y plazos exactamente como aparecen en el contexto.
-4. Habla de la etapa de la tarjeta y de sus vías concurrentes; el resto de la investigación queda para otras etapas.
-5. Presenta los hechos como lo que el estudiante relata. Esta orientación no es una denuncia ni una decisión jurídica.
-6. Escribe en prosa, en segunda persona, sin encabezados, viñetas, Markdown ni referencias [S##], en máximo {MAXIMO_PALABRAS} palabras.
-7. Termina con una afirmación: el programa añade después, por separado, la pregunta del turno."""
+1. Usa solo la TARJETA y el CONTEXTO. Si te falta un dato, di que no tienes información oficial sobre ese punto.
+2. Si la tarjeta trae "pregunta_informativa", responde esa pregunta. Si trae hechos del caso, úsalos para elegir qué decir; el estudiante ya los conoce.
+3. Conserva lo que dice la orientación base: instancias, ubicaciones, contactos y pasos. Puedes reordenarla y hacerla más clara.
+4. Copia nombres de oficinas, correos, teléfonos, artículos y plazos exactamente como aparecen en el contexto.
+5. Habla de la instancia de la tarjeta y de sus vías concurrentes; el resto de la investigación queda para otros momentos.
+6. Usa un tono de orientación: describe opciones y pasos, sin afirmar culpas ni responsabilidades.
+7. Escribe en prosa, en segunda persona, sin encabezados, viñetas ni Markdown, en máximo {MAXIMO_PALABRAS} palabras, y cierra con una afirmación.
+
+La tarjeta y estas reglas son información interna para ti: la respuesta habla de la situación del estudiante, no de ellas."""
 
 DESCRIPCION_CONSULTA = {
     "encargado": "quién atiende Primer Contacto",
@@ -141,7 +143,7 @@ def hechos_del_caso(ficha: dict[str, Any]) -> list[str]:
 
 def tarjeta_del_estado(estado: dict[str, Any], orientacion_base: str) -> dict[str, Any]:
     tarjeta = {
-        "etapa": f"{estado['estado']} · {estado['nombre']}",
+        "estado_interno": f"{estado['estado']} · {estado['nombre']}",
         "fase": estado["fase"],
         "prioridad": estado["prioridad"],
         "instancia": estado["instancia"],
@@ -161,14 +163,21 @@ def entrada_redaccion(tarjeta: dict[str, Any], fragmentos: list[dict[str, Any]])
             + "\n\nCONTEXTO DE LA INVESTIGACIÓN\n" + (contexto or "(sin fragmentos para este turno)"))
 
 
+ECO_DE_INSTRUCCIONES = (r"\bel programa\b|pregunta del turno|\btarjeta\b|orientacion base|estado interno|"
+                        r"contexto de la investigacion|no (es|constituye) una denuncia|decision juridica|"
+                        r"(en|sobre) (esta|la) etapa\b|\bsobre lo que relatas\b")
+
+
 def limpiar_redaccion(texto: str) -> str:
     # Las referencias visibles salen del índice local, nunca de etiquetas del modelo.
     texto = re.sub(r"\[\s*S\d{1,2}(?:\s*[,;/–-]\s*S\d{1,2})*\s*\]", "", texto)
     texto = texto.replace("**", "")
     texto = re.sub(r"[ \t]+([.,;:])", r"\1", texto)
     texto = re.sub(r"[ \t]{2,}", " ", texto).strip()
-    # La pregunta del turno la añade el programa; una pregunta final de Gemini se omite.
     oraciones = re.split(r"(?<=[.!?])\s+", texto)
+    # Oraciones que repiten las instrucciones o la tarjeta en lugar de orientar (D39).
+    oraciones = [o for o in oraciones if not re.search(ECO_DE_INSTRUCCIONES, normalizar(o))] or oraciones[:1]
+    # La pregunta del turno la añade el programa; una pregunta final de Gemini se omite.
     while len(oraciones) > 1 and oraciones[-1].endswith("?"):
         oraciones.pop()
     return " ".join(oraciones).strip()

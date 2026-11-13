@@ -229,5 +229,26 @@ class PruebasRegresionPruebaManual13Nov(unittest.TestCase):
         self.assertEqual(r["estado"], "q5")
 
 
+class PruebasPreguntaSinDato(unittest.TestCase):
+    """Prueba con Gemini del 13 nov 2026: «atienden los sabados?» (D38)."""
+
+    def test_en_q0_no_abre_un_caso(self):
+        _, r = conversar("¿atienden los sábados?")
+        self.assertEqual((r["estado"], r["reglas"], r["sin_dato"]), ("q0", [], True))
+        self.assertTrue(r["respuesta"].startswith("No tengo información oficial"))
+
+    def test_con_pregunta_pendiente_no_cuenta_como_intento(self):
+        sesion, _ = conversar("Un docente me pidió dinero a cambio de aprobar la materia.")
+        r = sesion.procesar("atienden los sabados?")
+        self.assertEqual((r["estado"], r["pendiente"]), ("q3", "B14"))
+        self.assertEqual(sesion.intentos, 0)
+        r = sesion.procesar("sí")
+        self.assertEqual(r["estado"], "q5")
+
+    def test_una_pregunta_con_hechos_sigue_siendo_un_relato(self):
+        _, r = conversar("¿Qué hago si un profe me pidió dinero para pasar?")
+        self.assertEqual(r["estado"], "q3")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

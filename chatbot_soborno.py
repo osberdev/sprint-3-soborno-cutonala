@@ -357,7 +357,10 @@ class ChatSoborno:
             respuesta += f"\n{pregunta}"
         fallo_gemini = None
         no_fundamentado: list[str] = []
-        if gemini:
+        # Gemini redacta cuando el turno tiene una regla o una pregunta informativa; un turno
+        # sin novedad o una pregunta sin dato conserva la respuesta local, breve (D40).
+        redacta = gemini and (estado["reglas"] or estado.get("consulta")) and "B17" not in estado["reglas"]
+        if redacta:
             try:
                 redaccion, no_fundamentado = redactar(estado, fragmentos, orientacion_base)
                 # Una redacción con datos que no están en el contexto no se muestra (iteración 4).
@@ -376,7 +379,7 @@ class ChatSoborno:
             **estado,
             "respuesta_chatbot": respuesta,
             "modo": (
-                ("Gemini" if gemini and not fallo_gemini and not no_fundamentado else "Local")
+                ("Gemini" if redacta and not fallo_gemini and not no_fundamentado else "Local")
                 + " + autómata + "
                 + ("FAISS" if getattr(self.buscador, "es_faiss", False) and not fallo_faiss else "documentos")
             ),
@@ -427,6 +430,9 @@ def mostrar(resultado: dict[str, Any]) -> None:
     if resultado.get("hechos_descartados"):
         print("HECHOS DE GEMINI SIN CITA COMPROBABLE (descartados):",
               ", ".join(str(h.get("hecho")) for h in resultado["hechos_descartados"]))
+    if resultado.get("extractor_consultado") and not (resultado.get("hechos_gemini") or resultado.get("hechos_descartados")
+                                                        or resultado.get("fallo_extractor")):
+        print("EXTRACTOR GEMINI: respondió sin hechos adicionales.")
     if resultado.get("fallo_extractor"):
         print("EXTRACTOR GEMINI NO RESPONDIÓ:", resultado["fallo_extractor"])
         print("El turno se evaluó solo con las reglas locales.")

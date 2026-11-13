@@ -10,10 +10,11 @@ import unittest
 from unittest.mock import patch
 
 import gemini_soborno
-from automata_soborno import SesionAutomata
+from sprint3_soborno import normalizar
+from automata_soborno import ORIENTACION, SesionAutomata
 from chatbot_soborno import ChatSoborno
 from escenarios_aceptacion import ESCENARIOS
-from gemini_soborno import (ESQUEMA_HECHOS, INSTRUCCION_REDACCION, MODELO_POR_DEFECTO, ExtractorGemini,
+from gemini_soborno import (ECO_DE_INSTRUCCIONES, ESQUEMA_HECHOS, INSTRUCCION_REDACCION, MODELO_POR_DEFECTO, ExtractorGemini,
                             interpretar_extraccion, limpiar_redaccion, verificar_fundamento)
 
 RAIZ = Path(__file__).resolve().parent
@@ -148,6 +149,31 @@ class PruebasRedaccion(unittest.TestCase):
                          "Acude a Primer Contacto.")
         self.assertEqual(limpiar_redaccion("Orientación [S05] de prueba **clave**."), "Orientación de prueba clave.")
 
+    def test_eco_de_las_instrucciones_se_omite(self):
+        # Oraciones reales de la prueba manual del 13 nov 2026 (D39, D40).
+        texto = ("Sobre lo que relatas en esta etapa inicial, Primer Contacto está en el CAE. "
+                 "En esta etapa de primer contacto, recuerda que esta orientación no es una denuncia ni una "
+                 "decisión jurídica. Acude a Primer Contacto. Esta orientación no constituye una denuncia "
+                 "formal ni una decisión jurídica sobre los hechos. El programa añade después, por separado, "
+                 "la pregunta del turno.")
+        self.assertEqual(limpiar_redaccion(texto), "Acude a Primer Contacto.")
+
+    def test_la_orientacion_local_no_se_confunde_con_un_eco(self):
+        for estado, texto in ORIENTACION.items():
+            for oracion in re.split(r"(?<=[.!?])\s+", texto if isinstance(texto, str) else " ".join(texto)):
+                with self.subTest(estado=estado, oracion=oracion[:40]):
+                    self.assertIsNone(re.search(ECO_DE_INSTRUCCIONES, normalizar(oracion)))
+
+    def test_gemini_solo_redacta_turnos_con_regla_o_pregunta_informativa(self):
+        falso = GeminiFalso(base_de)
+        chat = ChatSoborno()
+        with patch("gemini_soborno.generar", falso):
+            chat.responder(RELATO, gemini=True)                      # B3, B7: redacta
+            r = chat.responder("¿atienden los sábados?", gemini=True)  # sin dato: local
+        self.assertEqual(len(falso.llamadas), 1)
+        self.assertTrue(r["modo"].startswith("Local"))
+        self.assertTrue(r["respuesta_chatbot"].startswith("No tengo información oficial"))
+
     def test_fallo_de_gemini_muestra_la_respuesta_local(self):
         def falla(*_):
             raise RuntimeError("cuota agotada")
@@ -207,6 +233,11 @@ class PruebasExtractor(unittest.TestCase):
         sesion.procesar("sí")
         sesion.procesar("¿Hay profesores acusados de pedir dinero?")
         self.assertEqual(enviados, [RELATO])
+
+    def test_se_informa_cuando_el_extractor_no_encuentra_hechos(self):
+        r = SesionAutomata(extractor=lambda _m: set()).procesar(RELATO)
+        self.assertTrue(r["extractor_consultado"])
+        self.assertEqual(r["hechos_gemini"], [])
 
     def test_redaccion_y_extraccion_son_independientes(self):
         falso = GeminiFalso('{"hechos": []}')

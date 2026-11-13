@@ -298,6 +298,15 @@ def extraer_hechos(mensaje: str, adicionales: set[str] | frozenset[str] = frozen
     }
 
 
+SIN_DATO = ("No tengo información oficial sobre eso en la investigación. Puedes confirmarlo con Primer "
+            "Contacto: primercontacto@cutonala.udg.mx.")
+INTERROGATIVOS = r"^(que|quien|quienes|donde|cuando|como|cual|cuales|cuanto|cuanta|cuantos|cuantas|por que|para que|hay|puedo|se puede|atienden|existe|tienen)\b"
+
+
+def es_pregunta(mensaje: str) -> bool:
+    return "?" in mensaje or "¿" in mensaje or bool(re.match(INTERROGATIVOS, normalizar(mensaje).strip()))
+
+
 def _sin_alargamientos(texto: str) -> str:
     """Reduce letras repetidas: «siii» → «si», «noo» → «no» (D28)."""
     return re.sub(r"(\w)\1+", r"\1", texto)
@@ -394,6 +403,8 @@ class SesionAutomata:
         self.extractor = extractor
         self.fallo_extractor: str | None = None
         self.hechos_gemini: list[str] = []
+        self.extractor_consultado = False
+        self.sin_dato = False
         self.estado = "q0"
         self.ficha = Ficha()
         self.pendiente: str | None = None
@@ -433,6 +444,7 @@ class SesionAutomata:
         el turno sigue solo con las reglas locales."""
         if self.extractor is None or respuesta_si_no(mensaje) is not None:
             return set()
+        self.extractor_consultado = True
         try:
             adicionales = set(self.extractor(mensaje)) & set(HECHOS_BASICOS)
             self.hechos_gemini = sorted(adicionales)
@@ -476,6 +488,8 @@ class SesionAutomata:
         self._decidio_no = False
         self.hechos_gemini = []
         self.fallo_extractor = None
+        self.extractor_consultado = False
+        self.sin_dato = False
         if not mensaje.strip():
             return self._resultado([], None, None, aviso="Mensaje vacío.")
         reglas: list[str] = []
@@ -527,6 +541,11 @@ class SesionAutomata:
             hay_hechos = any(h[k] for k in narrativos + ("ventaja", "otro_tema", "nota_cuestionada"))
         if consulta and not hay_hechos:
             return self._resultado(reglas, consulta, None)
+        # Una pregunta que la base no responde no abre un caso ni cuenta como respuesta a la
+        # pregunta pendiente: se dice que no hay información oficial (regla del profesor, D38).
+        if not hay_hechos and es_pregunta(mensaje):
+            self.sin_dato = True
+            return self._resultado(reglas, None, None, aviso=SIN_DATO)
         if not hay_hechos and self.estado == "q0" and re.match(SALUDO, h["texto"]) and len(h["texto"].split()) <= 4:
             return self._resultado(reglas, None, None, aviso="Hola. Puedes preguntarme por Primer Contacto o contarme qué pasó.")
 
@@ -780,5 +799,7 @@ class SesionAutomata:
             "hechos": hechos,
             "hechos_gemini": list(self.hechos_gemini),
             "fallo_extractor": self.fallo_extractor,
+            "extractor_consultado": self.extractor_consultado,
+            "sin_dato": self.sin_dato,
             "turnos": self.turnos,
         }
