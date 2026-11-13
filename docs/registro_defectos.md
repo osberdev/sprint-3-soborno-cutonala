@@ -1,6 +1,6 @@
 # Registro de defectos · Módulo de soborno académico
 
-**Repositorio:** `osberdev/sprint-3-soborno-cutonala`, commit `cde923b`
+**Repositorio:** `osberdev/orientacion-soborno-academico-cutonala` (antes `sprint-3-soborno-cutonala`); registro iniciado en el commit `cde923b`
 **Fecha de registro:** 12 de noviembre de 2026
 **Referencia de diseño:** autómata conceptual aprobado (estados q0–q6 y qS; reglas B1–B17)
 **Corrección prevista:** durante la implementación del autómata nuevo

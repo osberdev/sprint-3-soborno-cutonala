@@ -1,6 +1,6 @@
-# Sprint 3 personal — Soborno académico en CUTonalá
+# Orientación sobre soborno académico · CUTonalá
 
-Módulo individual del chatbot de orientación del equipo verde para *Metodologías del desarrollo ágil* (CUTonalá).
+Chatbot de orientación para estudiantes del Centro Universitario de Tonalá (CUTonalá), UDG, ante posibles casos de soborno académico. Es el módulo individual del chatbot del equipo verde para *Metodologías del desarrollo ágil*; se desarrolló a partir del Sprint 3 (Primer Contacto).
 
 ## Tema individual
 
@@ -73,13 +73,13 @@ Los relatos C01 y C02 de la investigación mencionan intercambios presuntos, per
 
 Para un testimonio que sí vincule una persona concreta con una solicitud o entrega por una ventaja académica, crea `conocimientos/casos_docentes.local.json` a partir del archivo de ejemplo. Cada entrada de `casos` requiere `id`, `persona`, `tema` (`soborno` o `evaluacion`), `conducta`, `procedencia`, `fecha_registro`, `soporte` y `estado`; `alias`, `beneficio` (`dinero`, `botella` u `otro`), `materia`, `ciclo`, `resultado` y `contexto_evaluacion` son opcionales. `procedencia` debe precisar si es experiencia directa, entrevista, comentario indirecto o documento; `estado` distingue un relato sin corroborar de una denuncia o resolución. La función de consulta lee este archivo sin reconstruir FAISS, distingue el posible intercambio del trato preferencial y presenta los señalamientos como tales. No lo envía a Gemini.
 
-Este repositorio de GitHub es público. El archivo local con nombres está excluido de Git; su inclusión en una base compartida requiere acordar con el equipo qué datos se comparten y con quién. El PDF y el índice FAISS actuales contienen solamente los relatos sin nombres.
+Este repositorio de GitHub es público. El archivo local con nombres está excluido de Git; su inclusión en una base compartida requiere acordar con el equipo qué datos se comparten y con quién. El registro `relatos_campus.md` y el índice FAISS contienen solamente relatos sin nombres.
 
 ## Relación con la base compartida del profesor
 
-`app.py` y `Base.rar` muestran el flujo de referencia del equipo: cargar PDF de `conocimientos/`, dividirlos en fragmentos de 1 000 caracteres con 200 de solapamiento, producir embeddings con `gemini-embedding-2`, guardar un índice FAISS y recuperarlo en consultas posteriores. El índice entregado en `Base.rar` corresponde a otros documentos universitarios; no se mezcla con los PDF del módulo de soborno. Su archivo `index.pkl` no se carga, porque la deserialización de un archivo recibido puede ejecutar contenido no confiable.
+`app.py` y `Base.rar` muestran el flujo de referencia del equipo: cargar PDF de `conocimientos/`, dividirlos en fragmentos de 1 000 caracteres con 200 de solapamiento, producir embeddings con `gemini-embedding-2`, guardar un índice FAISS y recuperarlo en consultas posteriores. El índice entregado en `Base.rar` corresponde a otros documentos universitarios; no se mezcla con la base del módulo de soborno. Su archivo `index.pkl` no se carga, porque la deserialización de un archivo recibido puede ejecutar contenido no confiable.
 
-Este módulo conserva el contrato sencillo `buscar(pregunta, estado, limite=3)` para que el chat use el buscador local o FAISS. También conserva el autómata, las rutas de orientación y los identificadores de fuentes existentes. **Los archivos `faiss_index_soborno/` no son compatibles directamente con `FAISS.load_local()` de `app.py`:** aquí el índice se guarda con FAISS y los metadatos en JSON, sin `index.pkl`. Para integrar con el equipo hay dos rutas concretas: copiar los PDF revisados a `conocimientos/` de la aplicación compartida y reconstruir su índice LangChain, o conectar `BuscadorFaiss` como buscador del módulo individual. En la primera ruta, `app.py` carga automáticamente el índice viejo si encuentra `faiss_index/`; hay que conservarlo como respaldo fuera de esa ruta antes de ejecutar la reconstrucción. Antes de mezclar documentos, el equipo debe revisar procedencia y duplicados; los relatos indirectos no se convierten en hechos sobre docentes identificados.
+Este módulo conserva el contrato sencillo `buscar(pregunta, estado, limite=3)` para que el chat use el buscador local o FAISS. También conserva el autómata, las rutas de orientación y los identificadores de fuentes existentes. **Los archivos `faiss_index_soborno/` no son compatibles directamente con `FAISS.load_local()` de `app.py`:** aquí el índice se guarda con FAISS y los metadatos en JSON, sin `index.pkl`. Para integrar con el equipo hay dos rutas concretas: llevar los archivos de `conocimientos/` (excepto `relatos_campus.md` y el manifiesto) a la carpeta `conocimientos/` de la aplicación compartida, en el formato que su cargador lea, y reconstruir su índice LangChain, o conectar `BuscadorFaiss` como buscador del módulo individual. En la primera ruta, `app.py` carga automáticamente el índice viejo si encuentra `faiss_index/`; hay que conservarlo como respaldo fuera de esa ruta antes de ejecutar la reconstrucción. Antes de mezclar documentos, el equipo debe revisar procedencia y duplicados; los relatos indirectos no se convierten en hechos sobre docentes identificados.
 
 ### Construir y consultar FAISS
 
@@ -115,8 +115,7 @@ La reconstrucción conserva por separado cada grupo ya indexado. Si Gemini devue
 | `faiss_soborno.py` | Índice FAISS sobre `conocimientos/` con metadatos JSON. |
 | `sprint3_soborno.py` | Respuestas a las preguntas informativas sobre Primer Contacto (Sprint 3) y demostración del autómata por consola. |
 | `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
-| `conocimientos/` | Investigación segmentada, manifiesto, registro de relatos y ejemplo de registro nominal. `primer_contacto_soborno.md` es de una versión anterior y ningún módulo la consulta. |
-| `conocimientos_pdf/` | Dos PDF de una versión anterior, para la base compartida del equipo; el módulo ya no los lee. |
+| `conocimientos/` | Investigación segmentada, manifiesto, registro de relatos y ejemplo de registro nominal. |
 | `herramientas/segmentar_investigacion.py` | Regenera `conocimientos/` desde el `.docx` (`--verificar` solo comprueba). |
 | `herramientas/correr_pruebas.py` | Ejecuta todas las suites y resume el resultado. |
 | `fuentes.json` | Identificadores de fuente y enlaces. |
@@ -173,4 +172,4 @@ Se adjunta la investigación existente; esta preparación de evidencias no const
 - La calidad del orden en FAISS depende de la consulta armada con la etapa; los apartados prioritarios de cada etapa se fijan igual que en el modo local.
 - No tiene interfaz gráfica, folio ni envío de denuncias. El caso guardado es local y de una sola persona; no es un expediente.
 
-Repositorio: https://github.com/osberdev/sprint-3-soborno-cutonala (público).
+Repositorio: https://github.com/osberdev/orientacion-soborno-academico-cutonala (público; antes `sprint-3-soborno-cutonala`).

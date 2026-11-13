@@ -5,7 +5,7 @@ Recorre: pregunta informativa (B1), pregunta sin dato, relato con pago bajo pres
 asesoría jurídica (q6), consulta de antecedentes (B2), peligro actual (qS), salida de Seguridad que retoma el caso,
 y, tras reiniciar, una hipótesis, un pago condicionado presentado como causa benéfica y una insinuación.
 
-Chatbot individual · soborno académico · CUTonalá
+Orientación sobre soborno académico · CUTonalá
 Usa relatos ficticios. Escribe 'reset' para reiniciar o 'salir' para terminar.
 
 ESTUDIANTE: ¿Quién es la encargada de Primer Contacto?

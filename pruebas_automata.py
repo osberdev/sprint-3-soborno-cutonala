@@ -309,8 +309,8 @@ class PruebasFidelidadDeNombres(unittest.TestCase):
                 and not re.search(r"\\b|\(\?:|\[A-Z", n.value)]
 
     def test_cada_nombre_propio_es_un_nombre_completo_de_la_investigacion(self):
-        investigacion = "\n".join(p.read_text(encoding="utf-8") for p in sorted((RAIZ / "conocimientos").glob("*.md"))
-                                  if p.name != "primer_contacto_soborno.md")
+        investigacion = "\n".join(p.read_text(encoding="utf-8")
+                                  for p in sorted((RAIZ / "conocimientos").glob("*.md")))
         # Nombres completos tal como aparecen en la investigación: «Fiscalía Anticorrupción»
         # no vale, porque allí siempre continúa («… de Jalisco»).
         completos = {m.group(0) for m in self.NOMBRE.finditer(investigacion)}

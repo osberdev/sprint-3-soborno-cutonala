@@ -553,7 +553,7 @@ DEMO = [
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Chatbot individual de soborno académico para Sprint 3")
+    parser = argparse.ArgumentParser(description="Chatbot de orientación sobre soborno académico · CUTonalá")
     parser.add_argument("--demo", action="store_true", help="muestra una conversación ficticia reproducible")
     parser.add_argument("--pregunta", help="procesa un solo mensaje y termina")
     parser.add_argument("--gemini", action="store_true", help="usa Gemini para redactar la orientación")
@@ -601,7 +601,7 @@ def main() -> int:
         print("Aviso: el extractor envía a Gemini el texto de cada mensaje (sin guardarlo en el servicio). "
               "Las consultas de antecedentes y las respuestas de sí o no no se envían.")
     if pendientes is None:
-        print("Chatbot individual · soborno académico · CUTonalá")
+        print("Orientación sobre soborno académico · CUTonalá")
         print("Usa relatos ficticios. Escribe 'reset' para reiniciar o 'salir' para terminar.")
         if guardado:
             print(f"El caso se guarda en {guardado.ruta.name}: solo el estado y los hechos, sin tus mensajes. "
