@@ -7,7 +7,7 @@ import re
 from sprint3_soborno import normalizar
 
 
-REGISTRO = Path(__file__).resolve().parent / "conocimientos" / "casos_soborno.md"
+REGISTRO = Path(__file__).resolve().parent / "conocimientos" / "relatos_campus.md"
 REGISTRO_IDENTIFICADO = Path(__file__).resolve().parent / "conocimientos" / "casos_docentes.local.json"
 
 

@@ -1,8 +1,9 @@
 """Chatbot individual de soborno académico: autómata + recuperación + Gemini opcional.
 
-La base consultada es la investigación de Oscar. Se indexan únicamente capítulos
-de conceptos, rutas, directorio y escenarios ficticios; los testimonios informales
-del informe no se usan para atribuir conductas a personas identificables.
+La base consultada es la investigación de Oscar, segmentada en `conocimientos/`
+según `conocimientos/manifiesto.json`. Solo se indexan los archivos de uso
+"orientacion"; los relatos del campus se consultan aparte y los apartados
+excluidos (metodología, escenarios ficticios, diseño del prototipo) no se recuperan.
 """
 
 from __future__ import annotations
@@ -22,11 +23,9 @@ from sprint3_soborno import SesionAutomata, intencion_pregunta, normalizar
 
 
 BASE = Path(__file__).resolve().parent
-INFORME = BASE / "conocimientos" / "investigacion_soborno.md"
+CONOCIMIENTOS = BASE / "conocimientos"
+MANIFIESTO = json.loads((CONOCIMIENTOS / "manifiesto.json").read_text(encoding="utf-8"))
 FUENTES = json.loads((BASE / "fuentes.json").read_text(encoding="utf-8"))["fuentes"]
-# El capítulo 2 contiene relatos no verificados; el 9 son ejemplos hipotéticos
-# que podrían confundirse con hechos del usuario; el 10 trata casos ajenos al CUT.
-CAPITULOS_INDEXADOS = {3, 4, 5, 6, 7, 8, 11, 12, 14}
 STOPWORDS = set(
     "a al algo ante como con cual cuando de del donde el ella en entre es esta este "
     "hay la las le lo los me mi mis no o para por que quien se si su sus un una uno "
@@ -65,41 +64,43 @@ def palabras(texto: str) -> list[str]:
     return [p for p in re.findall(r"[a-z0-9]{3,}", normal) if p not in STOPWORDS]
 
 
-def cargar_fragmentos() -> list[dict[str, Any]]:
-    """Divide la investigación por apartados y párrafos para recuperar evidencia."""
-    texto = INFORME.read_text(encoding="utf-8")
-    capitulo = 0
-    titulo = ""
-    cuerpo: list[str] = []
+def filas_de_tabla(bloque: str) -> list[str]:
+    """Convierte una tabla Markdown en una oración por fila: «Encabezado: celda; ...»."""
+    lineas = [l.strip() for l in bloque.splitlines() if l.strip().startswith("|")]
+    celdas = [[c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", l.strip("|"))] for l in lineas]
+    celdas = [fila for fila in celdas if not all(re.fullmatch(r"-+", c) for c in fila if c)]
+    if len(celdas) < 2:
+        return []
+    encabezado = celdas[0]
+    return ["; ".join(f"{e}: {c}" for e, c in zip(encabezado, fila) if c) + "." for fila in celdas[1:]]
+
+
+def cargar_fragmentos(manifiesto: dict | None = None) -> list[dict[str, Any]]:
+    """Divide los archivos de orientación por apartado y párrafo para recuperar evidencia."""
+    manifiesto = manifiesto or MANIFIESTO
     fragmentos: list[dict[str, Any]] = []
-
-    def guardar() -> None:
-        if capitulo not in CAPITULOS_INDEXADOS or not titulo:
-            return
-        for parrafo in re.split(r"\n\s*\n", "\n".join(cuerpo).strip()):
-            parrafo = re.sub(r"\s+", " ", parrafo).strip()
-            if len(parrafo) < 80 or parrafo.startswith("<!--"):
-                continue
-            ids = list(dict.fromkeys(re.findall(r"S\d{2}", parrafo)))
-            fragmentos.append(
-                {"titulo": titulo, "texto": parrafo, "fuentes": [i for i in ids if i in FUENTES]}
-            )
-
-    for linea in texto.splitlines():
-        principal = re.match(r"^# (\d+)\s+", linea)
-        secundaria = re.match(r"^## (\d+)\.", linea)
-        if principal:
-            guardar()
-            capitulo = int(principal.group(1))
-            titulo = ""
-            cuerpo = []
-        elif secundaria:
-            guardar()
-            titulo = linea.lstrip("# ").strip()
-            cuerpo = []
-        else:
-            cuerpo.append(linea)
-    guardar()
+    for entrada in manifiesto["archivos"]:
+        if entrada["uso"] != "orientacion":
+            continue
+        texto = (CONOCIMIENTOS / entrada["archivo"]).read_text(encoding="utf-8")
+        for seccion in re.split(r"^## ", texto, flags=re.M)[1:]:
+            titulo, _, cuerpo = seccion.partition("\n")
+            titulo = titulo.strip()
+            for bloque in re.split(r"\n\s*\n", cuerpo.strip()):
+                partes = filas_de_tabla(bloque) if bloque.lstrip().startswith("|") else [bloque]
+                for parrafo in partes:
+                    parrafo = re.sub(r"\s+", " ", parrafo).strip()
+                    if len(parrafo) < 80 or parrafo.startswith("<!--"):
+                        continue
+                    ids = list(dict.fromkeys(re.findall(r"S\d{2}", parrafo)))
+                    fragmentos.append({
+                        "titulo": titulo,
+                        "texto": parrafo,
+                        "fuentes": [i for i in ids if i in FUENTES],
+                        "archivo": entrada["archivo"],
+                        "apartado": titulo.split()[0],
+                        "estados": list(entrada["estados"]),
+                    })
     return fragmentos
 
 
@@ -199,8 +200,9 @@ def ids_y_enlaces(fragmentos: list[dict[str, Any]], estado: dict[str, Any]) -> d
 
 
 def texto_visible(fragmento: dict[str, Any]) -> str:
-    """Quita la cabecera repetida del PDF sin alterar el texto indexado."""
-    texto = fragmento["texto"]
+    """Prepara el fragmento para mostrarlo: sin formato Markdown ni cabecera repetida del PDF."""
+    texto = re.sub(r"\*\*(.+?)\*\*", r"\1", fragmento["texto"])
+    texto = re.sub(r"^- ", "", texto)
     if fragmento.get("archivo") == "investigacion_soborno.pdf":
         texto = re.sub(
             r"^Investigación documental\s*\|\s*CUTonalá\s*\|\s*Corte:\s*\d{1,2}\s+\w+\s+\d{4}\s+\d+\s*",

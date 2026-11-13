@@ -26,16 +26,20 @@ Mensaje del estudiante
 |---|---|
 | `chatbot_soborno.py` | Entrada del chat, búsqueda documental y conexión opcional con Gemini. |
 | `sprint3_soborno.py` | Reglas, estado y memoria de la sesión. |
-| `conocimientos/investigacion_soborno.md` | Texto de la investigación utilizado como base documental. |
+| `conocimientos/*.md` (13 archivos) | La investigación segmentada por tema, transcrita sin cambios desde el `.docx`. |
+| `conocimientos/manifiesto.json` | Qué apartados contiene cada archivo, qué estados del autómata lo consultan y qué apartados se excluyen. |
+| `herramientas/segmentar_investigacion.py` | Regenera los archivos de conocimiento desde el `.docx` (`--verificar` solo comprueba). |
 | `conocimientos/primer_contacto_soborno.md` | Ficha institucional que consulta el motor de reglas. |
-| `conocimientos/casos_soborno.md` | Relatos aportados sin nombres, con procedencia, datos faltantes y límites de uso. |
+| `conocimientos/relatos_campus.md` | Relatos aportados sin nombres, con procedencia, datos faltantes y límites de uso, más el apartado 10.4 de la investigación. |
 | `conocimientos/casos_docentes.ejemplo.json` | Estructura vacía para registrar testimonios nominales por separado. |
 | `conocimientos_pdf/` | Dos PDF independientes: investigación de procesos y registro de relatos. |
 | `faiss_soborno.py` | Construcción y consulta opcional del índice FAISS individual desde esos PDF. |
 | `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
-| `pruebas_chatbot.py` | Siete pruebas automatizadas; incluyen un cliente simulado de Gemini. |
+| `pruebas_chatbot.py` | Ocho pruebas automatizadas; incluyen un cliente simulado de Gemini. |
+| `pruebas_conocimientos.py` | Comprueba que los archivos de conocimiento coinciden textualmente con la investigación y que nada excluido llega al estudiante. |
+| `escenarios_aceptacion.py` | Criterios de aceptación del autómata nuevo (escenarios 9.1–9.10 y guion de prueba manual). |
 | `pruebas_faiss_y_casos.py` | Nueve pruebas locales del registro, la transición a un relato directo, la extracción de PDF, la presentación de resultados, el respaldo cuando falla la búsqueda vectorial y la reanudación del índice. |
 | `evidencias/` | Salidas obtenidas al ejecutar pruebas y consultas el 13 de octubre de 2026. |
 
@@ -94,6 +98,8 @@ Con Python 3.10 o posterior, desde esta carpeta:
 ```bash
 python3 pruebas_chatbot.py
 python3 pruebas_faiss_y_casos.py
+python3 pruebas_conocimientos.py
+python3 escenarios_aceptacion.py
 python3 chatbot_soborno.py --demo
 python3 chatbot_soborno.py
 ```

@@ -13,9 +13,12 @@ class PruebasSprint3(unittest.TestCase):
     def test_base_solo_incluye_apartados_pertinentes_de_la_investigacion(self):
         fragmentos = Buscador().fragmentos
         self.assertGreater(len(fragmentos), 60)
-        self.assertFalse(any(f["titulo"].startswith("2.") for f in fragmentos))
-        self.assertFalse(any(f["titulo"].startswith("9.") for f in fragmentos))
-        self.assertFalse(any(f["titulo"].startswith("10.") for f in fragmentos))
+        capitulos = {f["apartado"].split(".")[0] for f in fragmentos}
+        # Metodología, escenarios ficticios, casos ajenos, evaluación web, diseño
+        # del prototipo, conclusiones y referencias no se recuperan (D04).
+        self.assertFalse(capitulos & {"1", "9", "10", "11", "12", "13", "15"})
+        self.assertFalse(any(f["apartado"] == "14.4" for f in fragmentos))
+        self.assertTrue(all(f["archivo"] and f["estados"] for f in fragmentos))
 
     def test_pregunta_de_ubicacion_recupera_el_directorio(self):
         respuesta = ChatSoborno().responder("¿Dónde encuentro Primer Contacto en CUTonalá?")
