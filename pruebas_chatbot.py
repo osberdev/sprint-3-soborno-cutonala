@@ -1,13 +1,9 @@
 """Pruebas de integración del módulo individual; no realizan llamadas a Gemini."""
 
-import json
-import os
-import sys
-import types
 import unittest
 from unittest.mock import patch
 
-from chatbot_soborno import Buscador, ChatSoborno, FUENTES, explicar_con_gemini
+from chatbot_soborno import Buscador, ChatSoborno, FUENTES
 
 
 class PruebasSprint3(unittest.TestCase):
@@ -82,45 +78,9 @@ class PruebasSprint3(unittest.TestCase):
         self.assertTrue(respuesta["fuentes_consultadas"])
         self.assertTrue(all(clave in FUENTES for clave in respuesta["fuentes_consultadas"]))
 
-    def test_conexion_gemini_se_integra_sin_enviar_informe_completo(self):
-        llamadas = []
-
-        class ClienteFalso:
-            def __init__(self, api_key, http_options):
-                self.interactions = self
-
-            def create(self, **kwargs):
-                llamadas.append(kwargs)
-                return types.SimpleNamespace(output_text="Orientación de prueba [S1][S2].")
-
-        modulo_google = types.ModuleType("google")
-        modulo_google.genai = types.SimpleNamespace(Client=ClienteFalso)
-        modulo_google_genai = types.ModuleType("google.genai")
-        modulo_google_genai.types = types.SimpleNamespace(
-            HttpRetryOptions=lambda **kwargs: kwargs,
-            HttpOptions=lambda **kwargs: kwargs,
-        )
-        chat = ChatSoborno()
-        estado = chat.sesion.procesar("Un docente me pidió dinero a cambio de aprobar")
-        fragmentos = chat.buscador.buscar("Un docente me pidió dinero a cambio de aprobar", estado)
-        with patch.dict(sys.modules, {"google": modulo_google, "google.genai": modulo_google_genai}), patch.dict(
-            os.environ, {"GEMINI_API_KEY": "clave_ficticia_para_prueba"}
-        ):
-            respuesta = explicar_con_gemini("Un docente me pidió dinero a cambio de aprobar", estado, fragmentos, [])
-        self.assertEqual(respuesta, "Orientación de prueba.")
-        self.assertEqual(len(llamadas), 1)
-        self.assertEqual(llamadas[0]["model"], "gemini-3.5-flash-lite")
-        self.assertEqual(llamadas[0]["timeout"], 12)
-        self.assertIn("SALIDA DEL AUTÓMATA", llamadas[0]["input"])
-        self.assertIn("FRAGMENTOS RECUPERADOS", llamadas[0]["input"])
-        self.assertIn("No escribas citas", llamadas[0]["input"])
-        self.assertLess(len(llamadas[0]["input"]), 15000)
-        self.assertIn("B14", json.dumps(estado, ensure_ascii=False))
-        self.assertIn(estado["pregunta"], llamadas[0]["input"])
-
     def test_modo_gemini_conserva_la_pregunta_pendiente(self):
         chat = ChatSoborno()
-        with patch("chatbot_soborno.explicar_con_gemini", return_value="Texto redactado por Gemini."):
+        with patch("chatbot_soborno.redactar", return_value=("Texto redactado por Gemini.", [])):
             respuesta = chat.responder("Un docente me pidió dinero a cambio de aprobar", gemini=True)
         self.assertEqual(respuesta["modo"], "Gemini + autómata + documentos")
         self.assertTrue(respuesta["respuesta_chatbot"].startswith("Texto redactado por Gemini."))

@@ -24,7 +24,8 @@ Mensaje del estudiante
 
 | Archivo | Función |
 |---|---|
-| `chatbot_soborno.py` | Entrada del chat, búsqueda documental y conexión opcional con Gemini. |
+| `chatbot_soborno.py` | Entrada del chat y búsqueda documental. |
+| `gemini_soborno.py` | Conexión opcional con Gemini: configuración única del modelo, redacción verificada contra el contexto y extractor de hechos con citas. |
 | `automata_soborno.py` | Autómata aprobado: estados q0–q6 y qS, reglas B1–B17, registro del caso y preguntas de sí o no. |
 | `sprint3_soborno.py` | Respuestas a las seis preguntas de Primer Contacto del Sprint 3 y demostración del autómata por consola. |
 | `conocimientos/*.md` (13 archivos) | La investigación segmentada por tema, transcrita sin cambios desde el `.docx`. |
@@ -38,7 +39,8 @@ Mensaje del estudiante
 | `casos_consulta.py` | Consulta de antecedentes con procedencia y estado del relato. |
 | `fuentes.json` | Relación entre identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal para lectura y entrega. |
-| `pruebas_chatbot.py` | Ocho pruebas automatizadas; incluyen un cliente simulado de Gemini. |
+| `pruebas_chatbot.py` | Pruebas de integración del chat en modo local. |
+| `pruebas_gemini.py` | Pruebas de la integración con Gemini mediante un servicio simulado: qué se envía, datos inventados, extractor y fallos. |
 | `pruebas_conocimientos.py` | Comprueba que los archivos de conocimiento coinciden textualmente con la investigación y que nada excluido llega al estudiante. |
 | `escenarios_aceptacion.py` | Criterios de aceptación del autómata nuevo (escenarios 9.1–9.10 y guion de prueba manual). |
 | `pruebas_automata.py` | Comprueba que la tabla de transiciones coincide con el diagrama aprobado y cubre casos límite. |
@@ -99,6 +101,7 @@ Con Python 3.10 o posterior, desde esta carpeta:
 
 ```bash
 python3 pruebas_chatbot.py
+python3 pruebas_gemini.py
 python3 pruebas_faiss_y_casos.py
 python3 pruebas_conocimientos.py
 python3 pruebas_automata.py
@@ -121,9 +124,18 @@ Estos resultados comprueban comportamientos de software en casos concretos; no c
 
 Existe una integración opcional con Gemini. El 13 de octubre de 2026 se registró una consulta real satisfactoria en `evidencias/consulta_gemini_01.txt`. La respuesta identifica las tres vías de orientación, evita determinar responsabilidad y solicita información adicional. Esta revisión confirma el funcionamiento observado; no constituye una validación jurídica independiente de la respuesta. En pruebas anteriores también se observó un fallo del servicio con respuesta local de respaldo.
 
-Para usar la integración se necesita la dependencia `google-genai` y una clave en la variable de entorno `GEMINI_API_KEY`. La clave se carga únicamente en la terminal del usuario y no forma parte del repositorio.
+Para usar la integración se necesita `google-genai` 3.3 o posterior (`requirements-gemini.txt`) y una clave en la variable de entorno `GEMINI_API_KEY`. La clave se carga únicamente en la terminal del usuario y no forma parte del repositorio.
 
-Entorno registrado para la prueba: `google-genai 2.29.0`, según `evidencias/entorno_gemini.txt`. La variable `GEMINI_MODEL` no estaba definida; el código de `chatbot_soborno.py` configura por defecto `gemini-3.5-flash-lite`. Este nombre identifica el modelo solicitado por el programa; la salida guardada no incluye metadatos del modelo devueltos por el servicio.
+Desde la iteración 4 (13 de noviembre de 2026) Gemini participa de dos formas independientes:
+
+| Opción | Qué envía | Qué hace | Si falla o inventa |
+|---|---|---|---|
+| `--gemini` | Una tarjeta del estado (etapa, instancia, hechos del caso en frases neutras, orientación local) y los fragmentos recuperados. **No envía el texto de los mensajes ni el historial.** | Redacta la orientación. El autómata ya decidió la etapa; la pregunta de sí o no se añade después, textual. | Si la redacción contiene un correo, enlace, cifra, plazo o instancia que no está en lo enviado, se muestra la respuesta local y se indica «REDACCIÓN DE GEMINI NO FUNDAMENTADA». |
+| `--extractor-gemini` | El texto de cada mensaje, salvo consultas de antecedentes y respuestas de sí o no. | Señala hechos de una lista cerrada, cada uno con una cita textual del mensaje. Solo se suman a los de las reglas locales; nunca los quitan. | Un hecho sin cita comprobable se descarta. Si el servicio falla, el turno se evalúa con las reglas locales. |
+
+Ambas peticiones usan `store=False`, temperatura 0.2 y una espera máxima de 12 segundos. El modelo se configura en un solo lugar, `gemini_soborno.py` (`gemini-3.5-flash-lite` por defecto, o la variable `GEMINI_MODEL`).
+
+Entorno registrado para la prueba del 13 de octubre: `google-genai 2.29.0`, según `evidencias/entorno_gemini.txt`. Esa versión es anterior a la integración actual.
 
 Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Su visibilidad se comprobó como pública el 29 de octubre de 2026.
 
@@ -131,5 +143,5 @@ Repositorio de GitHub: https://github.com/osberdev/sprint-3-soborno-cutonala. Su
 
 - El reconocimiento depende de reglas y coincidencias de palabras; necesita pruebas adicionales con otras redacciones.
 - No tiene interfaz gráfica, expediente persistente, folio ni envío de denuncias.
-- Los enlaces se recuperan del índice local; no verifican automáticamente todas las afirmaciones de una respuesta de Gemini.
+- La verificación de la redacción de Gemini comprueba datos concretos (correos, enlaces, cifras, plazos e instancias); no comprueba el sentido de cada afirmación.
 - Para las pruebas se utilizan relatos ficticios sin identificar personas reales.

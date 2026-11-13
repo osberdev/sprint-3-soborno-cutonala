@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import difflib
 import re
-from typing import Any
+from typing import Any, Callable
 
 from casos_consulta import pregunta_por_antecedentes
 from sprint3_soborno import FAQ, intencion_pregunta, normalizar
@@ -207,18 +207,68 @@ def corregir_escritura(texto: str) -> str:
     return " ".join(palabras)
 
 
-def extraer_hechos(mensaje: str) -> dict[str, Any]:
-    """Convierte un mensaje en hechos verificables por las reglas B1–B17."""
-    t = corregir_escritura(normalizar(mensaje))
+# Hechos básicos que una persona puede afirmar en un mensaje. Son el vocabulario
+# cerrado del extractor de Gemini (iteración 4): Gemini solo puede añadir hechos de
+# esta lista, con una cita textual del mensaje, y la derivación de las reglas
+# (intercambio, participación, tipo de amenaza) sigue siendo local.
+HECHOS_BASICOS: dict[str, str] = {
+    "beneficio": "se menciona dinero, un pago, un regalo, un favor u otro beneficio",
+    "ventaja": "se menciona una calificación, aprobar, reprobar, un examen u otra ventaja académica",
+    "nexo": "el beneficio y la ventaja académica están condicionados entre sí («a cambio de», «si le doy… me pasa»)",
+    "exigencia": "un docente u otra persona pidió o exigió el beneficio",
+    "ofrecimiento": "el estudiante ofreció el beneficio",
+    "pago_propio": "el estudiante dio, pagó o entregó el beneficio",
+    "presion": "el estudiante actuó por miedo, presión o amenaza",
+    "afectacion": "el estudiante expresa angustia, miedo, ansiedad u otra afectación personal",
+    "indirecto": "lo sabe por terceros (rumores, «se dice», «me contaron»), no lo vivió",
+    "implicito": "hubo una insinuación sin una petición explícita",
+    "amenaza_fisica": "hubo una amenaza de daño físico",
+    "amenaza_academica": "hubo una amenaza de perjuicio académico (reprobar, bajar la nota)",
+    "represalia": "hubo una represalia o perjuicio después de negarse o de reportar",
+    "peligro_actual": "el estudiante está en peligro en este momento",
+    "nota_cuestionada": "el estudiante cuestiona una calificación o evaluación",
+    "quiere_reportar": "el estudiante dice que quiere reportar o denunciar",
+    "a_salvo": "el estudiante dice que ya está a salvo",
+}
+
+
+def _hechos_basicos(t: str) -> dict[str, Any]:
     sin_negaciones = re.sub(NEGACION_BENEFICIO, " ", t)
-    beneficio = _hay(BENEFICIO, sin_negaciones)
-    ventaja = _hay(VENTAJA, t) and not _hay(r"no (cuenta|afecta|influye|vale) (para|en) la (calificacion|nota)", t)
-    nexo = _hay(NEXO, t)
-    exigencia = _hay(EXIGENCIA, t)
-    ofrecimiento = _hay(OFRECIMIENTO, t)
-    presion = _hay(PRESION, t)
     fisica = _hay(AMENAZA_FISICA, t)
-    amenaza = _hay(AMENAZA, t) or fisica
+    return {
+        "beneficio": _hay(BENEFICIO, sin_negaciones),
+        "ventaja": _hay(VENTAJA, t) and not _hay(r"no (cuenta|afecta|influye|vale) (para|en) la (calificacion|nota)", t),
+        "nexo": _hay(NEXO, t),
+        "exigencia": _hay(EXIGENCIA, t),
+        "ofrecimiento": _hay(OFRECIMIENTO, t),
+        "pago_propio": _hay(PAGO_PROPIO, t),
+        "presion": _hay(PRESION, t),
+        "afectacion": _hay(AFECTACION, t),
+        "indirecto": _hay(INDIRECTO, t),
+        "implicito": _hay(IMPLICITO, t),
+        "amenaza_fisica": fisica,
+        "amenaza_academica": _hay(AMENAZA, t) and not fisica,
+        "represalia": _hay(REPRESALIA, t),
+        "peligro_actual": _hay(PELIGRO_ACTUAL, t),
+        "nota_cuestionada": _hay(NOTA_CUESTIONADA, t),
+        "quiere_reportar": _hay(QUIERE_REPORTAR, t),
+        "a_salvo": _hay(A_SALVO, t),
+    }
+
+
+def extraer_hechos(mensaje: str, adicionales: set[str] | frozenset[str] = frozenset()) -> dict[str, Any]:
+    """Convierte un mensaje en hechos verificables por las reglas B1–B17.
+
+    `adicionales` son hechos básicos que otro extractor (Gemini) detectó con una cita
+    textual; se suman a los locales y nunca los quitan.
+    """
+    t = corregir_escritura(normalizar(mensaje))
+    b = _hechos_basicos(t)
+    for hecho in adicionales:
+        if hecho in HECHOS_BASICOS:
+            b[hecho] = True
+    beneficio, ventaja, nexo = b["beneficio"], b["ventaja"], b["nexo"]
+    exigencia, ofrecimiento = b["exigencia"], b["ofrecimiento"]
     otro_tema = next((nombre for nombre, patron in OTROS_TEMAS if _hay(patron, t)), None)
     if otro_tema == "cuotas extraordinarias" and nexo:
         otro_tema = None  # una aportación condicionada a la nota sí es posible soborno
@@ -231,19 +281,20 @@ def extraer_hechos(mensaje: str) -> dict[str, Any]:
         "nexo": nexo,
         "exigencia": exigencia and beneficio,
         "ofrecimiento": ofrecimiento and beneficio,
-        "pago_propio": _hay(PAGO_PROPIO, t) and beneficio,
-        "presion": presion,
+        "pago_propio": b["pago_propio"] and beneficio,
+        "presion": b["presion"],
         "intercambio": beneficio and ventaja and (nexo or exigencia or ofrecimiento),
-        "afectacion": _hay(AFECTACION, t),
-        "indirecto": _hay(INDIRECTO, t),
-        "implicito": _hay(IMPLICITO, t) and ventaja,
-        "amenaza": "fisica" if fisica else ("academica" if amenaza else None),
-        "represalia": _hay(REPRESALIA, t),
-        "peligro_actual": _hay(PELIGRO_ACTUAL, t),
-        "nota_cuestionada": _hay(NOTA_CUESTIONADA, t),
-        "quiere_reportar": _hay(QUIERE_REPORTAR, t),
-        "a_salvo": _hay(A_SALVO, t),
+        "afectacion": b["afectacion"],
+        "indirecto": b["indirecto"],
+        "implicito": b["implicito"] and ventaja,
+        "amenaza": "fisica" if b["amenaza_fisica"] else ("academica" if b["amenaza_academica"] else None),
+        "represalia": b["represalia"],
+        "peligro_actual": b["peligro_actual"],
+        "nota_cuestionada": b["nota_cuestionada"],
+        "quiere_reportar": b["quiere_reportar"],
+        "a_salvo": b["a_salvo"],
         "otro_tema": otro_tema,
+        "adicionales": sorted(set(adicionales) & set(HECHOS_BASICOS)),
     }
 
 
@@ -338,7 +389,11 @@ class Ficha:
 class SesionAutomata:
     """Conversación de un caso: estado de control, ficha y pregunta (1,0) pendiente."""
 
-    def __init__(self) -> None:
+    def __init__(self, extractor: Callable[[str], set[str]] | None = None) -> None:
+        # extractor: función opcional (Gemini) que devuelve hechos básicos adicionales.
+        self.extractor = extractor
+        self.fallo_extractor: str | None = None
+        self.hechos_gemini: list[str] = []
         self.estado = "q0"
         self.ficha = Ficha()
         self.pendiente: str | None = None
@@ -373,6 +428,19 @@ class SesionAutomata:
         self._preguntar(None)
         self._preguntar(self._pregunta_del_estado())
 
+    def _hechos_adicionales(self, mensaje: str) -> set[str]:
+        """Consulta el extractor opcional. Una respuesta de sí o no no se le envía; si falla,
+        el turno sigue solo con las reglas locales."""
+        if self.extractor is None or respuesta_si_no(mensaje) is not None:
+            return set()
+        try:
+            adicionales = set(self.extractor(mensaje)) & set(HECHOS_BASICOS)
+            self.hechos_gemini = sorted(adicionales)
+            return adicionales
+        except Exception as error:  # el modo local no depende del servicio externo
+            self.fallo_extractor = str(error) or type(error).__name__
+            return set()
+
     def _hay_caso(self) -> bool:
         f = self.ficha
         return bool(f.procedencia or f.beneficio or f.implicito or f.afectacion or f.amenaza
@@ -406,6 +474,8 @@ class SesionAutomata:
     def procesar(self, mensaje: str) -> dict[str, Any]:
         self._nota = None
         self._decidio_no = False
+        self.hechos_gemini = []
+        self.fallo_extractor = None
         if not mensaje.strip():
             return self._resultado([], None, None, aviso="Mensaje vacío.")
         reglas: list[str] = []
@@ -416,7 +486,7 @@ class SesionAutomata:
             return self._resultado(reglas, None, None)
         self.turnos += 1
 
-        h = extraer_hechos(mensaje)
+        h = extraer_hechos(mensaje, self._hechos_adicionales(mensaje))
 
         # B16: peligro actual, desde cualquier estado.
         if h["peligro_actual"] and self.estado != "qS":
@@ -708,5 +778,7 @@ class SesionAutomata:
             "vias": self.vias_concurrentes(),
             "ficha": self.ficha.como_dict(),
             "hechos": hechos,
+            "hechos_gemini": list(self.hechos_gemini),
+            "fallo_extractor": self.fallo_extractor,
             "turnos": self.turnos,
         }

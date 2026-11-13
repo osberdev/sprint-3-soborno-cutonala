@@ -61,7 +61,7 @@
 
 | ID | Riesgo | Estado |
 |---|---|---|
-| R01 | Con casos reales, en modo Gemini los relatos con nombres se envían a un servicio externo. Solo las consultas de antecedentes quedan excluidas | Seudonimización propuesta, no aprobada |
+| R01 | Con casos reales, en modo Gemini los relatos con nombres se envían a un servicio externo. Solo las consultas de antecedentes quedan excluidas | Reducido en la iteración 4: `--gemini` ya no envía el texto de los mensajes, solo hechos en frases neutras. `--extractor-gemini` sí envía cada mensaje (con `store=False`) y es opcional. Seudonimización propuesta, no aprobada |
 | R02 | El repositorio es público. `casos_docentes.local.json` está excluido de Git, pero conviene confirmarlo con `git check-ignore` antes de cada envío | Control vigente |
 
 ## D. Seguimiento
@@ -71,6 +71,8 @@
 | 0 · Línea base | D09 | `pruebas_faiss_y_casos.py` termina en OK sin `pypdf` (prueba omitida) |
 | 1 · Base segmentada | D04; D05 en tablas y negritas | `pruebas_conocimientos.py`: el capítulo 12 no se carga y ningún fragmento visible contiene `\|---` ni `**` |
 | 2 · Autómata | D01, D02, D03, D06, D11–D18; D10 en parte (se eliminó la función duplicada de Gemini) | `escenarios_aceptacion.py` (20 escenarios) y `pruebas_automata.py` (conformidad con el diagrama y casos límite) |
+| 3 · Pruebas manuales (12–13 nov) | D20–D37; D33 con la opción A aprobada | `PruebasRegresionPruebaManual*` en `pruebas_automata.py`, escenarios G9b y G11, `pruebas_conocimientos.py` |
+| 4 · Gemini | D07, D08, D19; D10 en la configuración del modelo y la versión de `google-genai` (el conteo de pruebas del README queda para la iteración 7) | `pruebas_gemini.py`: qué se envía, instrucción en positivo, siete datos inventados que regresan a la respuesta local, pregunta informativa trampa, extractor con citas y fallos del servicio |
 
 Los defectos G01–G06 del diagrama no se corrigen en la imagen: la implementación sigue el autómata aprobado (q6 Asesoría jurídica, q5 Autoridad externa, aceptación en q2–q6, lazo B8 en q3, B10 con (1,0)).
 

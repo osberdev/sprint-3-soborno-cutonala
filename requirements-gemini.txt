@@ -1,2 +1,2 @@
 # Dependencia opcional para Gemini. El modo local usa la biblioteca estándar.
-google-genai
+google-genai>=3.3,<4
