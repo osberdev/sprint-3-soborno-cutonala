@@ -169,7 +169,7 @@ NEGACION_BENEFICIO = r"\b(no se de|sin|ningun|ninguna|no hubo|no pidio|no me pid
 BENEFICIO = (r"\b(dinero|pesos?|\$\s?\d+|pag(o|os|ar|ue|ues|ado|aba|aste|aron|ara|uen|ando|a|as|an|amos)|le pague|transferencia|deposit\w*"
              r"|botell\w*|regal\w*|obsequi\w*|croquet\w*|aport\w*|cooperacion|donacion|mordida|soborn\w*|cuota\w*"
              # Expresiones coloquiales de las pruebas con Gemini del 13 nov 2026 (D50).
-             r"|billetes?|lana|varo|moche|favor (monetario|economico))\b")
+             r"|billetes?|lanas?|varos?|moches?|favor (monetario|economico))\b")
 VENTAJA = (r"\b(aprob\w*|reprob\w*|aprueb\w*|reprueb\w*|acredit\w*|pasar|pase|calificacion\w*|notas?|(cien|100)(?! ?(pesos|mil|dolares|mxn|varos))|puntos?|materia)\b")
 NEXO = (r"(a ?cambio de|si (le |te )?(pag\w*|das|doy|da|entreg\w*|deposit\w*) .{0,25}(aprueb\w*|pas[ae]\w*|acredit\w*|sub\w*)|con (un|una|unos|unas) \w+ (me|te|lo|la) (pas\w*|aprueb\w*|acredit\w*)|para (aprobar|acreditar|pasar|sacar|que me (pase|apruebe|cambie|cambiara|suba|ponga))"
         r"|si no (le )?(doy|pago|entrego|deposito)|quienes (den|aporten|paguen|entreguen)|tendran (100|cien)"

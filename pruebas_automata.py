@@ -277,6 +277,12 @@ class PruebasPreguntaSinDato(unittest.TestCase):
                 _, r = conversar(mensaje)
                 self.assertEqual(r["estado"], "q3")
 
+    def test_plurales_coloquiales_de_dinero(self):
+        # Prueba final del 20 nov 2026 (D58): «me pidió 100 varos» no se reconocía y pedía el relato otra vez.
+        _, r = conversar("el profe me pidio 100 varos")
+        self.assertEqual((r["estado"], r["pendiente"]), ("q1", "C1"))
+        self.assertTrue(r["hechos"]["beneficio"])
+
     def test_dos_preguntas_sin_dato_no_terminan_en_sigo_atento(self):
         # D46: la segunda respuesta igual se sustituía por «Sigo esperando tu respuesta».
         sesion, _ = conversar("Un docente me pidió dinero a cambio de aprobar la materia.", "despachan los sabados?")
