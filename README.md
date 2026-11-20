@@ -120,7 +120,7 @@ La reconstrucción conserva por separado cada grupo ya indexado. Si Gemini devue
 | `herramientas/correr_pruebas.py` | Ejecuta todas las suites y resume el resultado. |
 | `fuentes.json` | Identificadores de fuente y enlaces. |
 | `Investigacion_soborno_CUTonala.docx` | Investigación formal. |
-| `docs/registro_defectos.md` | Registro de defectos D01–D57, defectos del diagrama G01–G06, riesgos y seguimiento por iteración. |
+| `docs/registro_defectos.md` | Registro de defectos D01–D58, defectos del diagrama G01–G06, riesgos y seguimiento por iteración. |
 | `evidencias/` | Ejecuciones de pruebas, conversaciones y resumen de las pruebas manuales. |
 
 ## Pruebas
@@ -133,7 +133,7 @@ python3 herramientas/correr_pruebas.py
 
 | Suite | Pruebas | Qué comprueba |
 |---|---|---|
-| `pruebas_automata.py` | 50 | Tabla de transiciones contra el diagrama, casos límite, regresiones de las pruebas manuales, nombres exactos |
+| `pruebas_automata.py` | 51 | Tabla de transiciones contra el diagrama, casos límite, regresiones de las pruebas manuales, nombres exactos |
 | `escenarios_aceptacion.py` | 1 (21 escenarios) | Escenarios de aceptación aprobados: 9.x de la investigación y guion de prueba manual |
 | `pruebas_conocimientos.py` | 14 | Fidelidad textual con el `.docx`, exclusiones, recuperación por etapa, extractos sin repetición |
 | `pruebas_chatbot.py` | 8 | Chat en modo local |
