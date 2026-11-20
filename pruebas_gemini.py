@@ -150,6 +150,13 @@ class PruebasRedaccion(unittest.TestCase):
         texto = "La reciben la Secretaría de la División o la Secretaría Académica. Te conviene conservar los mensajes."
         self.assertEqual(verificar_fundamento(texto, soporte), [])
 
+    def test_horarios_de_un_rango_son_fundamentados(self):
+        # Falso positivo de la prueba del 20 nov 2026 (D57): «9:00–15:00» en el contexto,
+        # «de 9:00 a 15:00» en la redacción.
+        soporte = ["atención de lunes a viernes, 9:00–15:00 para Blanca y 12:00–19:00 para Valeria"]
+        self.assertEqual(verificar_fundamento("Atiende de 9:00 a 15:00 y de 12:00 a 19:00.", soporte), [])
+        self.assertEqual(verificar_fundamento("Atiende de 9:00 a 16:00.", soporte), ["16:00"])
+
     def test_pregunta_final_de_gemini_se_omite(self):
         self.assertEqual(limpiar_redaccion("Acude a Primer Contacto. ¿Quieres saber más?"),
                          "Acude a Primer Contacto.")

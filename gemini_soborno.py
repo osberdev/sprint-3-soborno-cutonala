@@ -235,6 +235,8 @@ def verificar_fundamento(texto: str, soporte: list[str]) -> list[str]:
     # «tres días hábiles» en el contexto respalda «3 días hábiles» en la redacción.
     cifras_soporte = set(re.findall(r"\d+", base + " " + base_cifras))
     cifras_soporte |= {re.sub(r"\D", "", m) for m in re.findall(r"\d+(?:[ .:,/–-]\d+)+", base)}
+    # Cada extremo de un rango cuenta por separado: «9:00–15:00» respalda «de 9:00 a 15:00» (D57).
+    cifras_soporte |= {re.sub(r"\D", "", m) for m in re.findall(r"\d+(?:[.:,/]\d+)+", base)}
     faltantes: list[str] = []
 
     for correo in re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", texto):
